@@ -14,7 +14,7 @@ db defaults to mobil_db
 
 If -f is specified, the results are written to .csv files.
 """
-__version__ = ".01"
+__version__ = ".00"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -56,7 +56,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
     to_date_format = '&d=%(tmonth)s&e=%(tday)s&f=%(tyear)s'
 
     ddic = {}
-    fdate = datetime.now() - timedelta(days=3)
+    fdate = datetime.now() - timedelta(days=2)
     ddic['tmonth'] = str(fdate.month - 1)
     ddic['tday'] = str(fdate.day)
     ddic['tyear'] = str(fdate.year)
@@ -91,6 +91,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
             )
             prices.create()
 
+        deltick = prices.delete()
     for ticker in tickers:
         urlticker = ticker.strip().upper()
         url = base_url + urlticker + from_date + to_date + xtra
@@ -124,7 +125,8 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
                 f.write(mempage.read() + '\n')
         else:
             # Delete the old ticker data
-            prices.delete().where(prices.c.ticker == ticker).execute()
+            deltick.where(prices.c.ticker == ticker)
+            deltick.execute()
 
             # Use psycopg2's copy_from to put the csv data into the tale
             cur.copy_from(mempage, tablename, sep=',', columns=headers)
