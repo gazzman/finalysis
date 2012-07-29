@@ -91,7 +91,6 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
             )
             prices.create()
 
-        deltick = prices.delete()
     for ticker in tickers:
         urlticker = ticker.strip().upper()
         url = base_url + urlticker + from_date + to_date + xtra
@@ -125,8 +124,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
                 f.write(mempage.read() + '\n')
         else:
             # Delete the old ticker data
-            deltick.where(prices.c.ticker == ticker)
-            deltick.execute()
+            prices.delete.where(prices.c.ticker == ticker).execute()
 
             # Use psycopg2's copy_from to put the csv data into the tale
             cur.copy_from(mempage, tablename, sep=',', columns=headers)
