@@ -69,7 +69,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
 
     if not totext:
         # SQL prep
-        engine = create_engine('postgresql:///' + db)
+        engine = create_engine('postgresql+psycopg2:///' + db)
         meta = MetaData()
         meta.bind = engine
         conn = engine.raw_connection()
@@ -124,7 +124,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
                 f.write(mempage.read() + '\n')
         else:
             # Delete the old ticker data
-            prices.delete.where(prices.c.ticker == ticker).execute()
+            prices.delete().where(prices.c.ticker==ticker).execute()
 
             # Use psycopg2's copy_from to put the csv data into the tale
             cur.copy_from(mempage, tablename, sep=',', columns=headers)
