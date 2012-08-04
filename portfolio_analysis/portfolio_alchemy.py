@@ -45,16 +45,15 @@ class MyMixin(object):
         return cls.__name__.lower()
         
 class Prices(Base):
-    __table__ = Table(PRICETABLENAME, Base.metadata, autoload=True)
+    __table__ = Base.metadata.tables[PRICETABLENAME]
 
     def __init__(self, interval):
-        (f_date, t_date) = interval.dates
-        (tickers, weights) = zip(*interval.ticker_weights)
-        print >> sys.stderr, 'Generating query...',
-
+        self.interval = interval
+        (f_date, t_date) = (interval.dates.f_date, interval.dates.t_date)
+        (self.tickers, self.weights) = zip(*interval.ticker_weights)
         self.s = select()
         self.s.bind = self.__table__.bind
-        for ticker in tickers:
+        for ticker in self.tickers:
             a = self.__table__.select(and_(self.__table__.c[TCOL]==ticker, 
                                            self.__table__.c[DCOL]>=f_date, 
                                            self.__table__.c[DCOL]<=t_date
@@ -69,8 +68,15 @@ class Prices(Base):
                 self.s.append_whereclause(a.c[DCOL].__le__(t_date))
             self.s.append_from(a)
             self.s.append_column(a.c[PCOL].label(ticker))
-        print >> sys.stderr, 'Done!'
 
+    def print_(self, conn):
+        print ','.join(self.s.c.keys())
+        for row in conn.execute(self.s):
+            print ','.join(map(str, row))
+
+#class Returns(Prices):
+#    date = Column(Date)
+                
 def iterprod(returns):
     dollarpath = array(returns)
     for i in range(1, len(returns)):
@@ -79,8 +85,9 @@ def iterprod(returns):
 
 
 def main(interval, initial_value, returns_tablename='portfolio_interval0'):
-    (f_date, t_date) = interval.dates
-    (tickers, weights) = zip(*interval.ticker_weights)
+    print >> sys.stderr, 'Initializing query...',
+    prices = Prices(interval)
+    print >> sys.stderr, 'Done!'
 
     print >> sys.stderr, 'Creating engine and binding...',
     engine = create_engine('postgresql+psycopg2:///' + DB, echo=False)
@@ -89,31 +96,6 @@ def main(interval, initial_value, returns_tablename='portfolio_interval0'):
     conn = engine.connect()    
     print >> sys.stderr, 'Done!'
 
-    # Pull the current interval's ticker price data
-#    prices = Table(PRICETABLENAME, meta, autoload=True)
-#    
-#    ticker = tickers[0]
-#    a = prices.select(and_(prices.c[TCOL]==ticker, 
-#                           prices.c[DCOL]>=f_date, 
-#                           prices.c[DCOL]<=t_date
-#                           )).alias(ticker)
-#    tables = [a]
-#    qcols = [a.c[DCOL].label(DCOL), a.c[PCOL].label(ticker)]
-#    where = []
-
-#    for ticker in tickers[1:]:
-#        a = prices.select(and_(prices.c[TCOL]==ticker, 
-#                               prices.c[DCOL]>=f_date, 
-#                               prices.c[DCOL]<=t_date
-#                               )).alias(ticker)
-#        where.append(tables[-1].c[DCOL].__eq__(a.c[DCOL]))
-#        tables.append(a)
-#        qcols.append(a.c[PCOL].label(ticker))
-#    where.append(tables[0].c[DCOL].__ge__(f_date))
-#    where.append(tables[0].c[DCOL].__le__(t_date))
-
-#    s = select(qcols, and_(*where), order_by=tables[0].c[DCOL].asc())
-    prices = Prices(interval)
     print >> sys.stderr, 'Fetching data...',
     parray = array(conn.execute(prices.s).fetchall())
     print >> sys.stderr, 'Done!'
@@ -136,7 +118,7 @@ def main(interval, initial_value, returns_tablename='portfolio_interval0'):
 
     # Compute this interval's return data
     print >> sys.stderr, 'Computing Return Data...',
-    w = transpose(array([weights]))
+    w = transpose(array([prices.weights]))
     dates = parray[1:,0:1]
     returns = parray[1:,1:]/parray[:-1,1:]
     print >> sys.stderr, 'Done!'
@@ -176,9 +158,11 @@ def main(interval, initial_value, returns_tablename='portfolio_interval0'):
     conn.execute(retable.insert(), inslist)
     print >> sys.stderr, 'Done!'
 
+    prices.print_(conn)
+
 if __name__ == "__main__":
-    f_date = '2001-01-01'
-    t_date = '2013-01-01'
+    f_date = '2011-01-01'
+    t_date = '2011-01-10'
 
     tickers = ['GFAFX', 'BJBIX', 'BUFSX', 'DODGX']
     weights = [.4, .3, .2, .1]
