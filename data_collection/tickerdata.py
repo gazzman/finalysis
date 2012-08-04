@@ -1,20 +1,6 @@
 #!/usr/bin/python
-"""tickerdata: Script to pull ticker data off of the web.
-
-Usage:
-
-    tickerdata.py tickerfile [ [-d db] [-t table] ] | [ -f ]
-
-tickerfile is an ascii text file with one ticker per line.
-Data for each ticker in tickerfile will pulled and stored
-in table "table" in db "db".
-
-table defaults to yahoo_tickers.
-db defaults to mobil_db
-
-If -f is specified, the results are written to .csv files.
-"""
-__version__ = ".00"
+"""tickerdata: Pull ticker data from web"""
+__version__ = ".01"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -22,7 +8,7 @@ __contributors__ = []
 from datetime import datetime, timedelta
 from StringIO import StringIO
 from time import sleep
-import optparse
+import argparse
 import re
 import sys
 import urllib2
@@ -132,17 +118,27 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
         print >> sys.stderr, 'Done!'
         
 if __name__ == "__main__":
-    p = optparse.OptionParser('%prog filename', version='%prog ' + __version__)
-    p.add_option('-d', dest='database', action='store_true', 
-        default='mobil_db', help='the name of the database')
-    p.add_option('-t', dest='table', action='store_true', 
-        default='yahoo_tickers', help='the name of the table')
-    p.add_option('-f', dest='totext', action='store_true', 
-        default=False, help='the name of the table')
-    (options, args) = p.parse_args()
+    p = argparse.ArgumentParser(description='Pull ticker data from web')
+    p.add_argument('tickerfile', type=str, 
+                   help='a text file of ticker sybols, one per line')
+    p.add_argument('-v', '--version', action='version', 
+                   version='%(prog)s ' + __version__)
 
-    with open(args[0], 'r') as f:
+    g1 = p.add_argument_group()        
+    g1 = p.add_argument_group('Store results in postgres database')
+    g1.add_argument('-d', metavar='db', nargs='?', default='mobil_db', 
+                    dest='db', help='name of db in which to store the data')
+    g1.add_argument('-t', metavar='table', nargs='?', default='yahoo_tickers', 
+                    dest='table', help='name of table in which to store data') 
+
+    g2 = p.add_argument_group('Write to file(s)')    
+    g2.add_argument('-f', dest='totext', action='store_true', 
+                    help='write data to \'ticker_symbol\'.csv file(s)')
+    args = p.parse_args()
+
+    print args
+    with open(args.tickerfile, 'r') as f:
         tickers = f.read().strip().split('\n')
 
-    pull_from_yahoo(tickers, db=options.database, tablename=options.table, 
-                    totext=options.totext)
+    pull_from_yahoo(tickers, db=args.db, tablename=args.table, 
+                    totext=args.totext)
