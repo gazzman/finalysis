@@ -42,7 +42,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
     to_date_format = '&d=%(tmonth)s&e=%(tday)s&f=%(tyear)s'
 
     ddic = {}
-    fdate = datetime.now() - timedelta(days=2)
+    fdate = datetime.now() - timedelta(days=3)
     ddic['tmonth'] = str(fdate.month - 1)
     ddic['tday'] = str(fdate.day)
     ddic['tyear'] = str(fdate.year)
