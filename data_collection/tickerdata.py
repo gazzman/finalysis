@@ -136,7 +136,6 @@ if __name__ == "__main__":
                     help='write data to \'ticker_symbol\'.csv file(s)')
     args = p.parse_args()
 
-    print args
     with open(args.tickerfile, 'r') as f:
         tickers = f.read().strip().split('\n')
 
