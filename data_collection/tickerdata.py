@@ -18,7 +18,7 @@ from sqlalchemy import MetaData, Table, Column
 from sqlalchemy import Date, Text, Float
 from sqlalchemy.exc import NoSuchTableError
 
-def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers', 
+def pull_from_yahoo(tickers, db='mobil_db', schema='yahoo_tickers', 
                     totext=False):
     """pull_from_yahoo:
 
@@ -26,7 +26,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
     it in a postgresql database.
     
     Requires a list of tickers to pull data from, the name of the db,
-    and the table where the data should be stored.
+    and the schema where the ticker tables should be created
 
     """
     # URL prep
@@ -35,7 +35,7 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
 
     ua_string = 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0.1)'
     ua_string += ' Gecko/20120225 Firefox/10.0.1'
-    header = {'User-Agent' : ua_string}
+    reqheader = {'User-Agent' : ua_string}
 
     # Date prep
     from_date_format = '&a=%(fmonth)s&b=%(fday)s&c=%(fyear)s'
@@ -56,36 +56,17 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
     if not totext:
         # SQL prep
         engine = create_engine('postgresql+psycopg2:///' + db)
-        meta = MetaData()
-        meta.bind = engine
+        metadata = MetaData(bind=engine, reflect=True)
         conn = engine.raw_connection()
         cur = conn.cursor()
 
-        try:
-            prices = Table(tablename, meta, autoload=True)
-        except NoSuchTableError as err:
-            print >> sys.stderr, tablename, 'doesn\'t exist. Creating...'
-            prices = Table(tablename, meta,
-                Column('ticker', Text, primary_key=True),
-                Column('date', Date, primary_key=True),
-                Column('open', Float(24)),
-                Column('high', Float(24)),
-                Column('low', Float(24)),
-                Column('close', Float(24)),
-                Column('volume', Float(24)),
-                Column('adj_close', Float(24))
-            )
-            prices.create()
-
     for ticker in tickers:
+        # Get the data
         urlticker = ticker.strip().upper()
         url = base_url + urlticker + from_date + to_date + xtra
         ticker = urlticker.replace('%5E','')
-        headers = ['ticker']
-        mempage = StringIO()
-
         print >> sys.stderr, 'Starting ' + ticker + '...',
-        req = urllib2.Request(url, headers=header)
+        req = urllib2.Request(url, headers=reqheader)
         opened = False
         while not opened:
             try:
@@ -97,23 +78,31 @@ def pull_from_yahoo(tickers, db='mobil_db', tablename='yahoo_tickers',
                     sleep(5)
                 else:
                     raise err
+        headers = page.readline().strip().lower().replace(' ','_').split(',')
 
-        headers += page.readline().strip().lower().replace(' ','_').split(',')
-        for line in page:
-            mempage.write(','.join([ticker, line]))
+        # Write as csv to memory buffer
+        mempage = StringIO()
+        if totext:
+            for line in page: mempage.write(','.join([ticker, line]))
+        else:
+            for line in page: mempage.write(line)
         mempage.seek(0)
 
         if totext:
+            # Write to csv file
             headers = ','.join(headers)
             with open(ticker + '.csv', 'w') as f:
-                f.write(headers + '\n')
+                f.write('ticker,' + headers + '\n')
                 f.write(mempage.read() + '\n')
         else:
-            # Delete the old ticker data
-            prices.delete().where(prices.c.ticker==ticker).execute()
-
-            # Use psycopg2's copy_from to put the csv data into the tale
-            cur.copy_from(mempage, tablename, sep=',', columns=headers)
+            # Upload to database
+            tickertable = Table(ticker.lower(), metadata, schema=schema)
+            tickertable.drop(checkfirst=True)
+            tickertable.append_column(Column('date', Date, primary_key=True))
+            for header in headers[1:]:
+                tickertable.append_column(Column(header, Float(24)))
+            tickertable.create()
+            cur.copy_from(mempage, ticker.lower(), sep=',', columns=headers)
             conn.commit()
         print >> sys.stderr, 'Done!'
         
@@ -126,10 +115,11 @@ if __name__ == "__main__":
 
     g1 = p.add_argument_group()        
     g1 = p.add_argument_group('Store results in postgres database')
-    g1.add_argument('-d', metavar='db', nargs='?', default='mobil_db', 
+    g1.add_argument('-d', metavar='db', default='mobil_db', 
                     dest='db', help='name of db in which to store the data')
-    g1.add_argument('-t', metavar='table', nargs='?', default='yahoo_tickers', 
-                    dest='table', help='name of table in which to store data') 
+    g1.add_argument('-s', metavar='schema', default='yahoo_tickers', 
+                    dest='schema',
+                    help='name of schema in which to store data tables') 
 
     g2 = p.add_argument_group('Write to file(s)')    
     g2.add_argument('-f', dest='totext', action='store_true', 
@@ -139,5 +129,5 @@ if __name__ == "__main__":
     with open(args.tickerfile, 'r') as f:
         tickers = f.read().strip().split('\n')
 
-    pull_from_yahoo(tickers, db=args.db, tablename=args.table, 
+    pull_from_yahoo(tickers, db=args.db, schema=args.schema, 
                     totext=args.totext)
