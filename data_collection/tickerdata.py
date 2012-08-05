@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """tickerdata: Pull ticker data from web"""
-__version__ = ".01"
+__version__ = ".02"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
