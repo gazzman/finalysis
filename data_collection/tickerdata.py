@@ -15,8 +15,7 @@ import urllib2
 
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData, Table, Column
-from sqlalchemy import Date, Text, Float
-from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy import Date, Float
 
 def pull_from_yahoo(tickers, db='mobil_db', schema='yahoo_tickers', 
                     totext=False):
