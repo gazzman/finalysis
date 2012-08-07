@@ -29,5 +29,3 @@ pip-log.txt
 tickers.txt
 *.csv
 test.py
-
-portfolio_alchemy.py
