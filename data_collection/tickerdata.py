@@ -14,7 +14,7 @@ postgresql db connection must be available.
 Note: if a schema is specified, it must already exist in the db.
 
 """
-__version__ = ".04"
+__version__ = ".05"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -39,6 +39,7 @@ from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
 
 class PriceMixin(object):
+    """A Mixin for an SQLAlchemy ORM containing price data"""
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
@@ -46,6 +47,7 @@ class PriceMixin(object):
     ticker = Column(Text, primary_key=True)
 
 class WebGrabberMixin(object):
+    """A Mixin for pulling pages from the web"""
     def _pull_page(self, url, header):
         req = urllib2.Request(url, headers=header)
         opened = False
@@ -68,13 +70,7 @@ class WebGrabberMixin(object):
         return page
 
 class YahooMixin(WebGrabberMixin):
-    """YahooMixin
-    
-    This class contains several methods for pulling yahoo ticker data.
-    It includes methods for writing the data to a csv file as well as
-    writing the data to a table by mixing into an SQLAlchemy ORM object.
-    
-    """
+    """A Mixin of methods for a SQLAlchemy ORM of yahoo data"""
     # Some default column names we'll use later
     adjclosecol = 'adj_close'
     datecol = 'date'
@@ -91,6 +87,22 @@ class YahooMixin(WebGrabberMixin):
         return ' '.join([date, time, tzone])
 
     def pull_tickerdata(self, ticker, daysback=4):
+        """Pull price and dividend history from yahoo finance.
+
+        ticker is the ticker symbol to pull data for.
+
+        Returns a tuple containing a list of lowercase column header
+        names where any spaces have been converted to '_' 
+        and a StringIO() object that contains the comma delimited data.
+
+        Keyword Argument:
+            daysback -- Denotes how many days back from today will be
+                        the end-date. Sometimes, yahoo returns the same
+                        date for the same ticker twice, leading to 
+                        primary key IntegrityErrors.
+                        Defaults to 4 days.
+
+        """
         # URL prep
         base_url = 'http://ichart.finance.yahoo.com/table.csv?s='
         prices = '&g=d&ignore=.csv'
@@ -153,6 +165,19 @@ class YahooMixin(WebGrabberMixin):
         return (headers, mempage)
 
     def update_prices(self, tickers, update=False, refresh=False):
+        """Insert or update price data in table.
+
+        tickers is a list of ticker symbols.
+
+        For each ticker symbol, pull the price and dividend info 
+        from yahoo and upload to the table. If data already exists,
+        then default behavior is to only insert data for new dates.
+
+        Keyword arguments:        
+            refresh -- If True, then delete and overwrite existing data.
+            update  -- If True, then update existing adj_close prices.
+        
+        """
         # We use the fast psycopg2 connection
         conn = self.metadata.bind.raw_connection()
         cur = conn.cursor()
@@ -209,6 +234,7 @@ class YahooMixin(WebGrabberMixin):
             print >> sys.stderr, 'Done!'
 
     def write_tickerdata_to_file(self, tickers):
+        """Write price and dividend data to ./'ticker'.csv file."""
         for ticker in tickers:
             (headers, mempage) = self.pull_tickerdata(ticker)
             ticker = ticker.replace('%5E','')
@@ -223,17 +249,20 @@ def gen_yahoo_prices_table(tablename, schema=None, method_dict={},
                            headers=['tickers', 'date', 'open', 'high', 'low', 
                                     'close', 'volume', 'adj_close', 
                                     'dividends']):
-    """gen_yahoo_prices_table(tablename)
-    
-    This function returns an sqlalcemy declarative_base() object with
-    attributes and methods inherited from various mixins. The arguments
-    are:
+    """Create an SQLAlchemy ORM to a table of yahoo price data.
 
-        tablename   -- the name of the table (and class)
-        schema      -- the name of the schema (not all dbs support this)
-        method_dict -- additional data and methods to add to class
-        headers     -- data headers; defaults to current Yahoo headers
-        
+    tablename is the name of the table to map.
+            
+    This function returns an sqlalcemy declarative_base() object with
+    attributes and methods inherited from PriceMixin and YahooMixin.
+
+    Keyword arguments:
+        schema      -- The name of the schema Not all dbs support this,
+                       and schema must already exist in db.
+        method_dict -- Additional data and methods to pass to class.
+        headers     -- list of data headers; defaults to current yahoo
+                       headers.
+
     """
     for header in headers:
         if not re.search('date|ticker', header.lower()):
@@ -266,7 +295,7 @@ if __name__ == "__main__":
     p.add_argument('-v', '--version', action='version', 
                    version='%(prog)s ' + __version__)
 
-    g1 = p.add_argument_group()        
+    g1 = p.add_argument_group()
     g1 = p.add_argument_group('Store results in postgres database')
     g1.add_argument('-d', metavar='db', default=ddef, dest='db', 
                     help=dhelp)
@@ -295,6 +324,5 @@ if __name__ == "__main__":
         engine = create_engine('postgresql+psycopg2:///' + args.db, echo=False)
         Base.metadata.bind = engine
         Base.metadata.reflect(schema=args.schema)
-        Base.metadata.create_all()
-#        t.__table__.create_all(checkfirst=True)
+        t.__table__.create(checkfirst=True)
         t.update_prices(tickers, update=args.update, refresh=args.refresh)
