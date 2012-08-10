@@ -1,6 +1,20 @@
 #!/usr/bin/python
-"""tickerdata: Pull ticker and dividend data from web"""
-__version__ = ".03"
+"""tickerdata: Pull ticker and dividend data from web
+
+This module provides a method that returns an SQLAlchemy ORM class
+that maps to a table of ticker price data.
+
+The class includes methods that automatically insert and update the db
+data from the web, as well as a method that writes the data to a
+csv file if the user wishes to.
+
+This module may also be run from the command line, in which case a 
+postgresql db connection must be available.
+
+Note: if a schema is specified, it must already exist in the db.
+
+"""
+__version__ = ".04"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -16,185 +30,220 @@ import urllib2
 
 from psycopg2 import IntegrityError
 from pytz import timezone
-from sqlalchemy import create_engine, MetaData, Table, Column, DateTime, Float
+from sqlalchemy import create_engine, MetaData, Table, Column
+from sqlalchemy import DateTime, Float, Text
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import sessionmaker
 
-# Column names
-ADJCLOSE = 'adj_close'
-DATE = 'date'
-DIV = 'dividends'
+Base = declarative_base()
 
-# For converting strings to datetime objects
-DATEFORMAT = '%Y-%m-%d %H:%M:%S %Z'
+class PriceMixin(object):
+    @declared_attr
+    def __tablename__(cls):
+        return cls.__name__.lower()
+    date = Column(DateTime, primary_key=True)
+    ticker = Column(Text, primary_key=True)
 
-# To avoid problems with duplicate dates
-DAYSBACK = 4
+class WebGrabberMixin(object):
+    def _pull_page(self, url, header):
+        req = urllib2.Request(url, headers=header)
+        opened = False
+        count = 0
+        while not opened:
+            if count > 4:
+                print ' '.join(['\nOk, we\'re on try', str(count),
+                                'now.\nWhy don\'t you see if this url,',
+                                url, 'is even working?'])
+            try:
+                page = urllib2.urlopen(req)
+                opened = True
+            except urllib2.HTTPError as err:
+                if re.match('HTTP Error 404', str(err)):
+                    print >> sys.stderr, '...404 problem...waiting 5 sec...',
+                    sleep(5)
+                    count += 1
+                else:
+                    raise err
+        return page
 
-def _pull_page(url, header):
-    req = urllib2.Request(url, headers=header)
-    opened = False
-    count = 0
-    while not opened:
-        if count > 4:
-            print ' '.join(['\nOk, we\'re on try', str(count),
-                            'now.\nWhy don\'t you see if this url,',
-                            url, 'is even working?'])
-        try:
-            page = urllib2.urlopen(req)
-            opened = True
-        except urllib2.HTTPError as err:
-            if re.match('HTTP Error 404', str(err)):
-                print >> sys.stderr, '...404 problem...waiting 5 sec...',
-                sleep(5)
-                count += 1
-            else:
-                raise err
-    return page
-
-def _add_timezone(date, time='16:00:00', locale='US/Eastern', 
-                  fmt='%Y-%m-%d %H:%M:%S'):
-    tz = timezone(locale)
-    dt = ' '.join([date, time])
-    dt = datetime.strptime(dt, fmt)
-    tzone = tz.tzname(dt)
-    return ' '.join([date, time, tzone])
-
-def pull_from_yahoo(tickers, db='mobil_db', schema='yahoo_tickers', 
-                    totext=False, update_adj_close=False):
-    """pull_from_yahoo(tickers):
-
-    This script pulls historical ticker data and dividend info from 
-    yahoo and stores it in a postgresql database or as text.
-
-    Requires a list of tickers to pull data from. Optional arguments
-    are:
-
-        db               -- name of db to connect to
-        schema           -- schema name to hold tables
-        totext           -- if True, output results to text files
-        update_adj_close -- if True, update adj_close prices
-
-    We assume the first column is always the DATE column.
-
+class YahooMixin(WebGrabberMixin):
+    """YahooMixin
+    
+    This class contains several methods for pulling yahoo ticker data.
+    It includes methods for writing the data to a csv file as well as
+    writing the data to a table by mixing into an SQLAlchemy ORM object.
+    
     """
-    # URL prep
-    base_url = 'http://ichart.finance.yahoo.com/table.csv?s='
-    prices = '&g=d&ignore=.csv'
-    dividends = '&g=v&ignore=.csv'
+    # Some default column names we'll use later
+    adjclosecol = 'adj_close'
+    datecol = 'date'
+    divcol = 'dividends'
+    daysback = 4
+    dateformat = '%Y-%m-%d %H:%M:%S %Z'
 
-    ua_string = 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0.1)'
-    ua_string += ' Gecko/20120225 Firefox/10.0.1'
-    reqheader = {'User-Agent' : ua_string}
+    def _add_timezone(self, date, time='16:00:00', locale='US/Eastern', 
+                      fmt='%Y-%m-%d %H:%M:%S'):
+        tz = timezone(locale)
+        dt = ' '.join([date, time])
+        dt = datetime.strptime(dt, fmt)
+        tzone = tz.tzname(dt)
+        return ' '.join([date, time, tzone])
 
-    # Date prep
-    from_date_format = '&a=%(fmonth)s&b=%(fday)s&c=%(fyear)s'
-    to_date_format = '&d=%(tmonth)s&e=%(tday)s&f=%(tyear)s'
+    def pull_tickerdata(self, ticker, daysback=4):
+        # URL prep
+        base_url = 'http://ichart.finance.yahoo.com/table.csv?s='
+        prices = '&g=d&ignore=.csv'
+        dividends = '&g=v&ignore=.csv'
 
-    ddic = {}
-    tdate = datetime.now() - timedelta(days=DAYSBACK)
-    ddic['tmonth'] = str(tdate.month - 1)
-    ddic['tday'] = str(tdate.day)
-    ddic['tyear'] = str(tdate.year)
-    ddic['fmonth'] = str(0)
-    ddic['fday'] = str(1)
-    ddic['fyear'] = str(1900)
+        ua_string = 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0.1)'
+        ua_string += ' Gecko/20120225 Firefox/10.0.1'
+        reqheader = {'User-Agent' : ua_string}
 
-    from_date = from_date_format % ddic
-    to_date = to_date_format  % ddic
+        # Date prep
+        from_date_format = '&a=%(fmonth)s&b=%(fday)s&c=%(fyear)s'
+        to_date_format = '&d=%(tmonth)s&e=%(tday)s&f=%(tyear)s'
 
-    if not totext:
-        # SQL prep
-        engine = create_engine('postgresql+psycopg2:///' + db)
-        metadata = MetaData(bind=engine, reflect=True)
+        ddic = {}
+        tdate = datetime.now() - timedelta(days=daysback)
+        ddic['tmonth'] = str(tdate.month - 1)
+        ddic['tday'] = str(tdate.day)
+        ddic['tyear'] = str(tdate.year)
+        ddic['fmonth'] = str(0)
+        ddic['fday'] = str(1)
+        ddic['fyear'] = str(1900)
 
-        # We use psycopg2 connection for faster updating and inserting
-        conn = engine.raw_connection()
-        cur = conn.cursor()
+        from_date = from_date_format % ddic
+        to_date = to_date_format  % ddic
 
-    for ticker in tickers:
         # Get the data
         urlticker = ticker.strip().upper()
         url = ''.join([base_url, urlticker, from_date, to_date])
         priceurl = ''.join([url, prices])
         divurl = ''.join([url, dividends])
         ticker = urlticker.replace('%5E','')
-        print >> sys.stderr, 'Starting ' + ticker + '...',
-
-        pricepage = csv.DictReader(_pull_page(priceurl, reqheader))
-        divpage = csv.DictReader(_pull_page(divurl, reqheader))
+        print >> sys.stderr, 'Grabbing data for ' + ticker + ' from web...',
+        pricepage = csv.DictReader(self._pull_page(priceurl, reqheader))
+        divpage = csv.DictReader(self._pull_page(divurl, reqheader))
         pricepage.fieldnames = map(lambda x: x.lower().replace(' ', '_'), 
                                    pricepage.fieldnames)
         divpage.fieldnames = map(lambda x: x.lower().replace(' ', '_'), 
-                                  divpage.fieldnames)
+                                 divpage.fieldnames)
 
         # Create dividend dictionary
         divdict = {}
         for row in divpage:
-            row[DATE] = _add_timezone(row[DATE])
-            divdict[row[DATE]] = row[DIV]
+            row[self.datecol] = self._add_timezone(row[self.datecol])
+            divdict[row[self.datecol]] = row[self.divcol]
 
-        # Add dividend info to csv in memory
-        headers = pricepage.fieldnames + [DIV]
+        # Add ticker and dividend info to csv in memory
+        headers = ['ticker'] + pricepage.fieldnames + [self.divcol]
         mempage = StringIO()
         memcsv = csv.DictWriter(mempage, headers)
         for row in pricepage:
-            row[DATE] = _add_timezone(row[DATE])
-            if row[DATE] in divdict:
-                row[DIV] = divdict[row[DATE]]
+            row['ticker'] = ticker
+            row[self.datecol] = self._add_timezone(row[self.datecol])
+            if row[self.datecol] in divdict:
+                row[self.divcol] = divdict[row[self.datecol]]
             else:
-                row[DIV] = None
+                row[self.divcol] = None
             memcsv.writerow(row)
-
         mempage.seek(0)
-        if totext:
-            # Send to file
-            with open(''.join([ticker, '.csv']), 'w') as f:
-                f.write(','.join(headers))
-                f.write('\n')
-                f.write(mempage.read())
-        else:
-            # Send to db
-            table = Table(ticker.lower(), metadata, schema=schema)
-            table.append_column(Column(DATE, DateTime(True), primary_key=True))
-            for header in headers[1:]:
-                table.append_column(Column(header, Float(24)))
-            table.create(checkfirst=True)
+        print >> sys.stderr, 'Done!'
+        return (headers, mempage)
+
+    def update_prices(self, tickers, update=False, refresh=False):
+        # We use the fast psycopg2 connection
+        conn = self.metadata.bind.raw_connection()
+        cur = conn.cursor()
+        for ticker in tickers:
+            (headers, mempage) = self.pull_tickerdata(ticker, self.daysback)
+            ticker = ticker.replace('%5E', '')
+            print >> sys.stderr, 'Writing ' + ticker + ' data to db...',
+            t_eq = self.__table__.c.ticker.__eq__(ticker)
+            if refresh:
+                self.__table__.delete(whereclause=t_eq).execute()
             try:
-                tablename = '.'.join([schema, ticker.lower()])
-                cur.copy_from(mempage, tablename, sep=',', null='', 
-                            columns=headers)
+                cur.copy_from(mempage, self.__tablename__, sep=',', null='',
+                              columns=headers)
                 conn.commit()
             except IntegrityError as err:
                 conn.rollback()
                 mempage.seek(0)
-                memcsv = csv.DictReader(mempage, fieldnames=headers)
                 m = re.search('\d+-\d+-\d+ \d+:\d+:\d+ E[DS]T', str(err))
-                lastdate = datetime.strptime(m.group(0), DATEFORMAT)
+                lastdate = datetime.strptime(m.group(0), self.dateformat)
                 (upnot, innot) = (False, False)
+                memcsv = csv.DictReader(mempage, fieldnames=headers)
                 for row in memcsv:
-                    if row[DIV] is '': row.pop(DIV)
-                    thisdate = datetime.strptime(row[DATE], DATEFORMAT)
+                    if row[self.divcol] is '': row.pop(self.divcol)
+                    thisdate = datetime.strptime(row[self.datecol], 
+                                                 self.dateformat)
                     if thisdate > lastdate:
                         # Insert new dates
                         if not innot:
-                            msg = ('Inserting from ' + row[DATE] + '...')
+                            msg = ('Inserting from ' + row[self.datecol]
+                                   + '...')
                             print >> sys.stderr, msg,
                             innot = True
-                        ins = table.insert().values(row)
+                        ins = self.__table__.insert().values(row)
                         cur.execute(str(ins), row)
-                    elif update_adj_close:
+                    elif update:
                         # Update adj_close
                         if not upnot:
-                            msg = ('Updating ' + ADJCLOSE + ' backwards from ' 
-                                   + row[DATE] + '...')
+                            msg = ('Updating ' + self.adjclosecol 
+                                   + ' backwards from ' + row[self.datecol]
+                                   + '...')
                             print >> sys.stderr, msg,
                             upnot = True
-                        upd = table.update().where(table.c[DATE]==row[DATE])
-                        upd = upd.values({ADJCLOSE: row[ADJCLOSE]})
-                        cur.execute(str(upd), {ADJCLOSE: row[ADJCLOSE], 
-                                               'date_1': row[DATE]})
+                        d_eq = self.__table__.c[self.datecol]
+                        d_eq = d_eq.__eq__(row[self.datecol])
+                        td_eq = d_eq.__and__(t_eq)
+                        upd = self.__table__.update().where(td_eq)
+                        upd = upd.values({self.adjclosecol: 
+                                          row[self.adjclosecol]})
+                        cur.execute(str(upd), 
+                                    {self.adjclosecol: row[self.adjclosecol], 
+                                     'date_1': row[self.datecol],
+                                     'ticker_1': ticker})
                 conn.commit()
-        print >> sys.stderr, 'Done!'
+            print >> sys.stderr, 'Done!'
 
+    def write_tickerdata_to_file(self, tickers):
+        for ticker in tickers:
+            (headers, mempage) = self.pull_tickerdata(ticker)
+            ticker = ticker.replace('%5E','')
+            print >> sys.stderr, 'Writing ' + ticker + ' data to file...',
+            with open(''.join([ticker, '.csv']), 'w') as f:
+                f.write(','.join(headers))
+                f.write('\n')
+                f.write(mempage.read())
+            print >> sys.stderr, 'Done!'
+
+def gen_yahoo_prices_table(tablename, schema=None, method_dict={}, 
+                           headers=['tickers', 'date', 'open', 'high', 'low', 
+                                    'close', 'volume', 'adj_close', 
+                                    'dividends']):
+    """gen_yahoo_prices_table(tablename)
+    
+    This function returns an sqlalcemy declarative_base() object with
+    attributes and methods inherited from various mixins. The arguments
+    are:
+
+        tablename   -- the name of the table (and class)
+        schema      -- the name of the schema (not all dbs support this)
+        method_dict -- additional data and methods to add to class
+        headers     -- data headers; defaults to current Yahoo headers
+        
+    """
+    for header in headers:
+        if not re.search('date|ticker', header.lower()):
+            method_dict[header.lower()] = Column(Float(23))
+    TableClass = type(tablename, (PriceMixin, YahooMixin, Base), method_dict)
+    if schema is not None:
+        TableClass.__table__.schema = schema
+    return TableClass
+
+# For running from command line
 if __name__ == "__main__":
     description = 'Pull ticker data from web.'
     description += ' Can direct output to disk or to database.'
@@ -204,9 +253,12 @@ if __name__ == "__main__":
     ddef = 'mobil_db'
     dhelp = 'name of db in which to store the data.'
     dhelp += ' Defaults to \'' + ddef + '\'.'
-    sdef = 'yahoo_tickers'
-    shelp = 'name of schema in which to hold data tables.'
-    shelp += ' Defaults to \'' + sdef + '\'.'
+    sdef = None
+    shelp = 'name of schema in which to hold data table.'
+    shelp += ' Defaults to \'' + str(sdef) + '\'.'
+    tdef = 'yahoo'
+    thelp = 'name of table in which to store data.'
+    thelp += ' Defaults to \'' + tdef + '\'.'
 
     p = argparse.ArgumentParser(description=description)
     p.add_argument('tickerfile', type=str, 
@@ -220,6 +272,10 @@ if __name__ == "__main__":
                     help=dhelp)
     g1.add_argument('-s', metavar='schema', default=sdef, dest='schema', 
                     help=shelp)
+    g1.add_argument('-t', metavar='tablename', default=tdef, dest='tablename', 
+                    help=thelp)
+    g1.add_argument('-r', dest='refresh', action='store_true', 
+                    help='delete and refresh data')
     g1.add_argument('-u', dest='update', action='store_true', 
                     help='update historical adj_close prices')
 
@@ -231,5 +287,14 @@ if __name__ == "__main__":
     with open(args.tickerfile, 'r') as f:
         tickers = f.read().strip().split('\n')
 
-    pull_from_yahoo(tickers, db=args.db, schema=args.schema, 
-                    totext=args.totext, update_adj_close=args.update)
+    T = gen_yahoo_prices_table(args.tablename, schema=args.schema)
+    t = T()
+    if args.totext:
+        t.write_tickerdata_to_file(tickers)
+    else:
+        engine = create_engine('postgresql+psycopg2:///' + args.db, echo=False)
+        Base.metadata.bind = engine
+        Base.metadata.reflect(schema=args.schema)
+        Base.metadata.create_all()
+#        t.__table__.create_all(checkfirst=True)
+        t.update_prices(tickers, update=args.update, refresh=args.refresh)
