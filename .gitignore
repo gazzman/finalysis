@@ -29,4 +29,4 @@ pip-log.txt
 tickers.txt
 *.csv
 test.py
-ticker[*].txt
+ticker*.txt
