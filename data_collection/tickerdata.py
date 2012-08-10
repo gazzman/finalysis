@@ -95,7 +95,7 @@ class YahooMixin(WebGrabberMixin):
         names where any spaces have been converted to '_' 
         and a StringIO() object that contains the comma delimited data.
 
-        Keyword Argument:
+        Keyword argument:
             daysback -- Denotes how many days back from today will be
                         the end-date. Sometimes, yahoo returns the same
                         date for the same ticker twice, leading to 
