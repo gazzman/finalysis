@@ -30,3 +30,5 @@ tickers.txt
 *.csv
 test.py
 ticker*.txt
+
+*.pkl
