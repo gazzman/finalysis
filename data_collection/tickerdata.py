@@ -14,7 +14,7 @@ postgresql db connection must be available.
 Note: if a schema is specified, it must already exist in the db.
 
 """
-__version__ = ".05"
+__version__ = ".06"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -26,15 +26,15 @@ import argparse
 import csv
 import re
 import sys
-import urllib2
 
 from psycopg2 import IntegrityError
-from pytz import timezone
 from sqlalchemy import create_engine, MetaData, Table, Column
 from sqlalchemy import DateTime, Float, Text
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import sessionmaker
+
+from finalysis._helpers import _DateHelpers, _WebHelpers
 
 Base = declarative_base()
 
@@ -46,30 +46,7 @@ class PriceMixin(object):
     date = Column(DateTime, primary_key=True)
     ticker = Column(Text, primary_key=True)
 
-class WebGrabberMixin(object):
-    """A Mixin for pulling pages from the web"""
-    def _pull_page(self, url, header):
-        req = urllib2.Request(url, headers=header)
-        opened = False
-        count = 0
-        while not opened:
-            if count > 4:
-                print ' '.join(['\nOk, we\'re on try', str(count),
-                                'now.\nWhy don\'t you see if this url,',
-                                url, 'is even working?'])
-            try:
-                page = urllib2.urlopen(req)
-                opened = True
-            except urllib2.HTTPError as err:
-                if re.match('HTTP Error 404', str(err)):
-                    print >> sys.stderr, '...404 problem...waiting 5 sec...',
-                    sleep(5)
-                    count += 1
-                else:
-                    raise err
-        return page
-
-class YahooMixin(WebGrabberMixin):
+class YahooMixin(_DateHelpers, _WebHelpers):
     """A Mixin of methods for a SQLAlchemy ORM of yahoo data"""
     # Some default column names we'll use later
     adjclosecol = 'adj_close'
@@ -77,14 +54,6 @@ class YahooMixin(WebGrabberMixin):
     divcol = 'dividends'
     daysback = 4
     dateformat = '%Y-%m-%d %H:%M:%S %Z'
-
-    def _add_timezone(self, date, time='16:00:00', locale='US/Eastern', 
-                      fmt='%Y-%m-%d %H:%M:%S'):
-        tz = timezone(locale)
-        dt = ' '.join([date, time])
-        dt = datetime.strptime(dt, fmt)
-        tzone = tz.tzname(dt)
-        return ' '.join([date, time, tzone])
 
     def pull_tickerdata(self, ticker, daysback=4):
         """Pull price and dividend history from yahoo finance.
