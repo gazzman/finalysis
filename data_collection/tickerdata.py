@@ -14,7 +14,7 @@ postgresql db connection must be available.
 Note: if a schema is specified, it must already exist in the db.
 
 """
-__version__ = ".06"
+__version__ = ".07"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -43,7 +43,7 @@ class PriceMixin(object):
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
-    date = Column(DateTime, primary_key=True)
+    date = Column(DateTime(True), primary_key=True)
     ticker = Column(Text, primary_key=True)
 
 class YahooMixin(_DateHelpers, _WebHelpers):
