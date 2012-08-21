@@ -15,6 +15,11 @@ class _DateHelpers(object):
         tzone = tz.tzname(dt)
         return ' '.join([dt.date().isoformat(), dt.time().isoformat(), tzone])
 
+    def _convert_to_gmt(self, dt, locale='US/Eastern'):
+        tz = timezone(locale)
+        offset = tz.utcoffset(dt)
+        return dt - offset
+
 class _WebHelpers(object):
     """A Mixin for pulling pages from the web"""
     def _pull_page(self, url, header):
@@ -29,7 +34,7 @@ class _WebHelpers(object):
             try:
                 page = urllib2.urlopen(req)
                 opened = True
-            except urllib2.HTTPError as err:
+            except urllib2.HTTPError, err:
                 if re.match('HTTP Error 404', str(err)):
                     print >> sys.stderr, '...404 problem...waiting 5 sec...',
                     sleep(5)
