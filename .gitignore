@@ -32,3 +32,4 @@ test.py
 ticker*.txt
 
 *.pkl
+*.class
