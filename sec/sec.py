@@ -13,7 +13,7 @@ COL_TEXT          -- the column text that contains the anchor for
                      the url of the entire text submission url
 Submission        -- a named tuple that stores submission rss 
                      feed information
-SubmissionPuller  -- the class that takes a cik and parses submissions 
+SubmissionGetter  -- the class that takes a cik and parses submissions 
                      into text documents
 
 """
