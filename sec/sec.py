@@ -13,7 +13,7 @@ COL_TEXT          -- the column text that contains the anchor for
                      the url of the entire text submission url
 Submission        -- a named tuple that stores submission rss 
                      feed information
-SubmissionHandler -- the class that takes a cik and parses submissions 
+SubmissionPuller  -- the class that takes a cik and parses submissions 
                      into text documents
 
 """
@@ -34,8 +34,8 @@ import time
 import urllib2
 
 from BeautifulSoup import BeautifulSoup
+from html2text import html2text
 import feedparser
-import html2text
 
 
 UASTRING=('Mozilla/5.0 (X11; Linux x86_64; rv:10.0.5) Gecko/20120606'
@@ -134,7 +134,7 @@ class SubmissionGetter:
             print >> sys.stderr, outmsg
         print >> sys.stderr, 'Submission URLs pulled.'
         message = ('Call \'pull_text_filing\' to pull, parse, and store the'
-                   + ' complete submissiond as text files.')
+                   + ' complete submission as text files.')
         print >> sys.stderr, message
 
     def pull_text_filing(self, count=None, verbose=False, 
