@@ -149,6 +149,7 @@ class SubmissionGetter:
 
         """
         matchcount = 0
+        filenames = []
         for submission in self.submissions:
             matches = self.match_form(submission.form)
             already_pulled = False
@@ -224,6 +225,9 @@ class SubmissionGetter:
                                + ' '.join([submission.form, submission.date]))
                     print >> sys.stderr, message
 
+                filenames.append(sub_tfile)
+
             if matchcount == count:
                 break
         pickle.dump(self.submissions, open(self.sub_urlfile, 'wb'))
+        return filenames
