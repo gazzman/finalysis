@@ -14,7 +14,7 @@ postgresql db connection must be available.
 Note: if a schema is specified, it must already exist in the db.
 
 """
-__version__ = ".07"
+__version__ = ".09"
 __author__ = "gazzman"
 __copyright__ = "(C) 2012 gazzman GNU GPL 3."
 __contributors__ = []
@@ -214,7 +214,7 @@ class YahooMixin(_DateHelpers, _WebHelpers):
                 f.write(mempage.read())
             print >> sys.stderr, 'Done!'
 
-def gen_yahoo_prices_table(tablename, schema=None, method_dict={}, 
+def gen_yahoo_prices_table(tablename, schema=None, method_dict={}, Base=Base,  
                            headers=['tickers', 'date', 'open', 'high', 'low', 
                                     'close', 'volume', 'adj_close', 
                                     'dividends']):
