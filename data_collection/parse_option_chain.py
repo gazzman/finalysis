@@ -148,10 +148,10 @@ if __name__ == "__main__":
         data = [td.text for td in underlying_body.findAll('td')]
         for (h, d) in zip(headers, data):
             if h == 'BxA Size':
-                stock['bid_size'], stock['ask_size'] = [x.strip() 
+                stock['bid_size'], stock['ask_size'] = [''.join(x.strip().split(','))
                                                         for x in d.split('x')]
             elif h == 'Bid [tick]':
-                stock['bid'], stock['tick'] = [x.strip(' []') 
+                stock['bid'], stock['tick'] = [''.join(x.strip(' []').split(','))
                                                for x in d.split('[')]
             elif h == '% Change':
                 stock['pct_change'] = d.strip('%')
