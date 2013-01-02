@@ -1,8 +1,10 @@
 #!/usr/bin/python
 from calendar import Calendar
 from datetime import datetime, timedelta
+from logging.handlers import TimedRotatingFileHandler
 import csv
 import logging
+
 import sys
 
 from BeautifulSoup import BeautifulSoup
@@ -15,9 +17,9 @@ from sqlalchemy.dialects.postgresql import (BOOLEAN, CHAR, DATE, INTEGER,
                                             NUMERIC, VARCHAR)
 
 logger = logging.getLogger('parse_option_chain')
-hdlr = logging.TimedRotatingFileHandler('parser_output.log', when='midnight')
+hdlr = TimedRotatingFileHandler('parser_output.log', when='midnight')
 logger.addHandler(hdlr)
-logger.setlevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 Base = declarative_base()
 
@@ -149,7 +151,7 @@ if __name__ == "__main__":
 
     if not session.query(UnderlyingPrice).get((cp.ticker, cp.date, cp.time)):
         logger.info('Adding the price for ' + cp.ticker + ' at ' 
-                    + 'T'.join(cp.date, cp.time))
+                    + 'T'.join([cp.date, cp.time]))
         stock = dict([('ticker', cp.ticker)] + date_time_dic.items())
         headers = [th.text for th in underlying_body.findAll('th')]
         data = [td.text for td in underlying_body.findAll('td')]
@@ -198,15 +200,17 @@ if __name__ == "__main__":
         p_price = dict(zip(p_head, p_data) + date_time_dic.items())
 
         c_price = get_cid(c_con, c_price, session)
+        logger.info('Got contract id ' + str(c_price['id']))
         p_price = get_cid(p_con, p_price, session)
+        logger.info('Got contract id ' + str(p_price['id']))
 
         if not session.query(OptionPrice).get((c_price['id'], c_price['date'], 
                                                c_price['time'])):
             session.add(OptionPrice(**c_price))
-            logger.info('Adding the price for contract ' + c_price['id'])
+            logger.info('Adding the price for contract ' + str(c_price['id']))
         if not session.query(OptionPrice).get((p_price['id'], p_price['date'], 
                                                p_price['time'])):
             session.add(OptionPrice(**p_price))
-            logger.info('Adding the price for contract ' + p_price['id'])
+            logger.info('Adding the price for contract ' + str(p_price['id']))
 
     session.commit()
