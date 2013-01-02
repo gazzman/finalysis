@@ -2,6 +2,7 @@
 from calendar import Calendar
 from datetime import datetime, timedelta
 import csv
+import logging
 import sys
 
 from BeautifulSoup import BeautifulSoup
@@ -13,7 +14,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import (BOOLEAN, CHAR, DATE, INTEGER, 
                                             NUMERIC, VARCHAR)
 
-
+logger = logging.getLogger('parse_option_chain')
+hdlr = logging.TimedRotatingFileHandler('parser_output.log', when='midnight')
+logger.addHandler(hdlr)
+logger.setlevel(logging.DEBUG)
 
 Base = declarative_base()
 
@@ -136,6 +140,7 @@ if __name__ == "__main__":
     date_time_dic = {'date': cp.date, 'time': cp.time}
 
     if not session.query(Ticker).get(cp.ticker):
+        logger.info('Adding ticker ' + cp.ticker)
         session.add(Ticker(ticker=cp.ticker))
         session.commit()
 
@@ -143,6 +148,8 @@ if __name__ == "__main__":
     underlying_body, option_body = soup.findAll('tbody')
 
     if not session.query(UnderlyingPrice).get((cp.ticker, cp.date, cp.time)):
+        logger.info('Adding the price for ' + cp.ticker + ' at ' 
+                    + 'T'.join(cp.date, cp.time))
         stock = dict([('ticker', cp.ticker)] + date_time_dic.items())
         headers = [th.text for th in underlying_body.findAll('th')]
         data = [td.text for td in underlying_body.findAll('td')]
@@ -196,8 +203,10 @@ if __name__ == "__main__":
         if not session.query(OptionPrice).get((c_price['id'], c_price['date'], 
                                                c_price['time'])):
             session.add(OptionPrice(**c_price))
+            logger.info('Adding the price for contract ' + c_price['id'])
         if not session.query(OptionPrice).get((p_price['id'], p_price['date'], 
                                                p_price['time'])):
             session.add(OptionPrice(**p_price))
+            logger.info('Adding the price for contract ' + p_price['id'])
 
     session.commit()
