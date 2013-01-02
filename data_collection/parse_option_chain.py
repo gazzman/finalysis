@@ -166,6 +166,8 @@ if __name__ == "__main__":
     c_head, p_head = headers[1:7], headers[9:-1]
 
     data = [''.join(td.text.split(',')) for td in option_body.findAll('td')]
+    data = [d.strip('*') for d in data]
+
     last_date = None
     last_expiry = None
     while len(data) >= len(headers):
