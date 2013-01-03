@@ -89,7 +89,8 @@ class ChainParser():
 
         self.s = line + f.read()
         
-        self.ticker, self.description, date = data
+        ticker, self.description, date = data
+        self.ticker = '-'.join(ticker.split('/'))
         self.date, self.time = date.split('T')
 
 
