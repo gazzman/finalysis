@@ -16,11 +16,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import (BOOLEAN, CHAR, DATE, INTEGER, 
                                             NUMERIC, VARCHAR)
 
-logger = logging.getLogger('parse_option_chain')
-hdlr = TimedRotatingFileHandler('parser_output.log', when='midnight')
-logger.addHandler(hdlr)
-logger.setLevel(logging.DEBUG)
-
 Base = declarative_base()
 
 class Ticker(Base):
@@ -126,11 +121,24 @@ def get_cid(con_dic, price_dic, session):
     return price_dic
 
 
+def seconds_elapsed(start, end):
+    s = (end - start).seconds
+    m = (end - start).microseconds
+    return round(s + m/1000000.0,3)
+
 # For running from command line
 if __name__ == "__main__":
     file_to_parse = sys.argv[1]
     db_name = sys.argv[2]
+    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+                     + '%(levelname)6s -- %(threadName)s: %(message)s')
 
+    logger = logging.getLogger('parse_option_chain')
+    hdlr = TimedRotatingFileHandler('parser_output.log', when='midnight')
+    fmt = logging.Formatter(fmt=logger_format)
+    hdlr.setFormatter(fmt)
+    logger.addHandler(hdlr)
+    logger.setLevel(logging.INFO)
     dburl = 'postgresql+psycopg2:///' + db_name
     engine = create_engine(dburl)
 
@@ -138,21 +146,35 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
 
+    logger.info('Loading datafile ' + file_to_parse)
     cp = ChainParser(file_to_parse)
     data_date = datetime.strptime(cp.date, '%Y-%m-%d').date()
     date_time_dic = {'date': cp.date, 'time': cp.time}
 
     if not session.query(Ticker).get(cp.ticker):
-        logger.info('Adding ticker ' + cp.ticker)
+        logger.info('Adding ticker ' + cp.ticker + ' to ' + db_name)
         session.add(Ticker(ticker=cp.ticker))
         session.commit()
 
+    logger.info('Parsing file')
+    parse_start = datetime.now()
     soup = BeautifulSoup(cp.s)
     underlying_body, option_body = soup.findAll('tbody')
+
+    o_headers = [th.text for th in option_body.findAll('th')]
+    o_headers = [h.lower() for h in o_headers]
+    c_head, p_head = o_headers[1:7], o_headers[9:-1]
+
+    o_data = [''.join(td.text.split(',')) for td in option_body.findAll('td')]
+    o_data = [d.strip('*') for d in o_data]
+    parse_end = datetime.now()
+    logger.info('Parsing complete. Took ' 
+                + str(seconds_elapsed(parse_start, parse_end)) + ' seconds.')
 
     if not session.query(UnderlyingPrice).get((cp.ticker, cp.date, cp.time)):
         logger.info('Adding the price for ' + cp.ticker + ' at ' 
                     + 'T'.join([cp.date, cp.time]))
+        add_price_start = datetime.now()
         stock = dict([('ticker', cp.ticker)] + date_time_dic.items())
         headers = [th.text for th in underlying_body.findAll('th')]
         data = [td.text for td in underlying_body.findAll('td')]
@@ -170,18 +192,20 @@ if __name__ == "__main__":
 
         session.add(UnderlyingPrice(**stock))
         session.commit()
+        add_price_end = datetime.now()
+        logger.info('Adding price complete. Took ' 
+                + str(seconds_elapsed(add_price_start, add_price_end))
+                + ' seconds.')
+    else: logger.info(cp.ticker + ' price data already in db for ' 
+                      + 'T'.join([cp.date, cp.time]))
 
-    headers = [th.text for th in option_body.findAll('th')]
-    headers = [h.lower() for h in headers]
-    c_head, p_head = headers[1:7], headers[9:-1]
-
-    data = [''.join(td.text.split(',')) for td in option_body.findAll('td')]
-    data = [d.strip('*') for d in data]
-
+    logger.info('Adding prices for ' + str(len(o_data)/len(o_headers)) 
+                + ' contracts.')
+    add_prices_start = datetime.now()
     last_date = None
     last_expiry = None
-    while len(data) >= len(headers):
-        d, data = data[0:len(headers)], data[len(headers):]
+    while len(o_data) >= len(o_headers):
+        d, o_data = o_data[0:len(o_headers)], o_data[len(o_headers):]
         c_data, expiry, strike, p_data = d[1:7], d[7], d[8], d[9:-1]
 
         if last_expiry != expiry:
@@ -201,17 +225,21 @@ if __name__ == "__main__":
         p_price = dict(zip(p_head, p_data) + date_time_dic.items())
 
         c_price = get_cid(c_con, c_price, session)
-        logger.info('Got contract id ' + str(c_price['id']))
+        logger.debug('Got contract id ' + str(c_price['id']))
         p_price = get_cid(p_con, p_price, session)
-        logger.info('Got contract id ' + str(p_price['id']))
+        logger.debug('Got contract id ' + str(p_price['id']))
 
         if not session.query(OptionPrice).get((c_price['id'], c_price['date'], 
                                                c_price['time'])):
             session.add(OptionPrice(**c_price))
-            logger.info('Adding the price for contract ' + str(c_price['id']))
+            logger.debug('Adding the price for contract ' + str(c_price['id']))
         if not session.query(OptionPrice).get((p_price['id'], p_price['date'], 
                                                p_price['time'])):
             session.add(OptionPrice(**p_price))
-            logger.info('Adding the price for contract ' + str(p_price['id']))
+            logger.debug('Adding the price for contract ' + str(p_price['id']))
 
     session.commit()
+    add_prices_end = datetime.now()
+    logger.info('Adding contract prices complete. Took ' 
+            + str(seconds_elapsed(add_prices_start, add_prices_end))
+            + ' seconds.')    
