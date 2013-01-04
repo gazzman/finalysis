@@ -86,7 +86,8 @@ class ChainParser():
             except IndexError:
                 pass
 
-        self.s = line + f.read()
+        soup = BeautifulSoup(line + f.read())
+        self.underlying_body, self.option_body = soup.findAll('tbody')
         
         ticker, self.description, date = data
         self.ticker = '-'.join(ticker.split('/'))
@@ -150,7 +151,8 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    logger.info('Loading datafile ' + file_to_parse)
+    logger.info('Parsing datafile ' + file_to_parse)
+    parse_start = datetime.now()
     cp = ChainParser(file_to_parse)
     data_date = datetime.strptime(cp.date, '%Y-%m-%d').date()
     date_time_dic = {'date': cp.date, 'time': cp.time}
@@ -160,16 +162,10 @@ if __name__ == "__main__":
         session.add(Ticker(ticker=cp.ticker))
         session.commit()
 
-    logger.info('Parsing file')
-    parse_start = datetime.now()
-    soup = BeautifulSoup(cp.s)
-    underlying_body, option_body = soup.findAll('tbody')
-
-    o_headers = [th.text for th in option_body.findAll('th')]
-    o_headers = [h.lower() for h in o_headers]
+    o_headers = [th.text.lower() for th in cp.option_body.findAll('th')]
     c_head, p_head = o_headers[1:7], o_headers[9:-1]
 
-    o_data = [''.join(td.text.split(',')) for td in option_body.findAll('td')]
+    o_data = [''.join(td.text.split(',')) for td in cp.option_body.findAll('td')]
     o_data = [d.strip('*') for d in o_data]
     parse_end = datetime.now()
     logger.info('Parsing complete. Took ' 
@@ -180,8 +176,8 @@ if __name__ == "__main__":
                     + 'T'.join([cp.date, cp.time]))
         add_price_start = datetime.now()
         stock = dict([('ticker', cp.ticker)] + date_time_dic.items())
-        headers = [th.text for th in underlying_body.findAll('th')]
-        data = [td.text for td in underlying_body.findAll('td')]
+        headers = [th.text for th in cp.underlying_body.findAll('th')]
+        data = [td.text for td in cp.underlying_body.findAll('td')]
         for (h, d) in zip(headers, data):
             if h == 'BxA Size':
                 stock['bid_size'], stock['ask_size'] = [''.join(x.strip().split(','))
