@@ -50,9 +50,9 @@ class OptionContract(Base):
     __tablename__ = 'option_contracts'
     id = Column(INTEGER, primary_key=True)
     ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'), index=True)
-    expiry = Column(DATE)
+    expiry = Column(DATE, index=True)
     call_put = Column(CHAR(1))
-    strike = Column(NUMERIC(8,3))
+    strike = Column(NUMERIC(8,3), index=True)
     
     option_prices = relationship('OptionPrice', backref='option_contracts')
 
