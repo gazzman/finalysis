@@ -36,3 +36,4 @@ ticker*.txt
 *.txt
 
 tmp
+*.bash
