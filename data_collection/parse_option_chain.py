@@ -26,11 +26,13 @@ class Ticker(Base):
 
     underlying_prices = relationship('UnderlyingPrice', backref='tickers')
     option_contracts = relationship('OptionContract', backref='tickers')
+    option_prices = relationship('OptionPrice', backref='tickers')
 
 
 class UnderlyingPrice(Base):
     __tablename__ = 'underlying_prices'
-    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'), primary_key=True)
+    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'),
+                    primary_key=True, index=True)
     date = Column(DATE, primary_key=True)
     time = Column(Time(timezone=True), primary_key=True)
     price = Column(NUMERIC(8,3))    
@@ -48,7 +50,7 @@ class UnderlyingPrice(Base):
 class OptionContract(Base):
     __tablename__ = 'option_contracts'
     id = Column(INTEGER, primary_key=True)
-    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'))
+    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'), index=True)
     expiry = Column(DATE)
     call_put = Column(CHAR(1))
     strike = Column(NUMERIC(8,3))
@@ -58,7 +60,9 @@ class OptionContract(Base):
 
 class OptionPrice(Base):
     __tablename__ = 'option_prices'
-    id = Column(INTEGER, ForeignKey('option_contracts.id'), primary_key=True)
+    id = Column(INTEGER, ForeignKey('option_contracts.id'), 
+                primary_key=True, index=True)
+    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'), index=True)
     date = Column(DATE, primary_key=True)
     time = Column(Time(timezone=True), primary_key=True)
     last = Column(NUMERIC(8,3))
@@ -221,8 +225,10 @@ if __name__ == "__main__":
         c_con = dict([('call_put', 'C')] + contract.items())
         p_con = dict([('call_put', 'P')] + contract.items())
 
-        c_price = dict(zip(c_head, c_data) + date_time_dic.items())
-        p_price = dict(zip(p_head, p_data) + date_time_dic.items())
+        c_price = dict(zip(c_head, c_data) + date_time_dic.items()
+                       + [('ticker', cp.ticker)])
+        p_price = dict(zip(p_head, p_data) + date_time_dic.items()
+                       + [('ticker', cp.ticker)])
 
         c_price = get_cid(c_con, c_price, session)
         logger.debug('Got contract id ' + str(c_price['id']))
