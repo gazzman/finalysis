@@ -227,12 +227,19 @@ if __name__ == "__main__":
         p_price = get_cid(p_con, p_price, session)
         logger.debug('Got contract id ' + str(p_price['id']))
 
-        if not session.query(OptionPrice).get((c_price['id'], c_price['date'], 
-                                               c_price['time'])):
+        c_sq =session.query(OptionPrice).get((c_price['id'], c_price['date'], 
+                                              c_price['time']))
+        p_sq =session.query(OptionPrice).get((p_price['id'], p_price['date'], 
+                                              p_price['time']))
+
+        c_nc = len([x for x in c_price.values() if x.strip() == ''])
+        p_nc = len([x for x in p_price.values() if x.strip() == ''])
+
+        if not (c_sq or c_nc == 0):
             session.add(OptionPrice(**c_price))
             logger.debug('Adding the price for contract ' + str(c_price['id']))
-        if not session.query(OptionPrice).get((p_price['id'], p_price['date'], 
-                                               p_price['time'])):
+
+        if not (p_sq or p_nc == 0):
             session.add(OptionPrice(**p_price))
             logger.debug('Adding the price for contract ' + str(p_price['id']))
 
