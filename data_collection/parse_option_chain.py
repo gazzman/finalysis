@@ -2,9 +2,7 @@
 from calendar import Calendar
 from datetime import datetime, timedelta
 from logging.handlers import TimedRotatingFileHandler
-import csv
 import logging
-
 import sys
 
 from BeautifulSoup import BeautifulSoup
