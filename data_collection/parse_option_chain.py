@@ -220,19 +220,23 @@ if __name__ == "__main__":
         c_price = dict(zip(c_head, c_data) + date_time_dic.items())
         p_price = dict(zip(p_head, p_data) + date_time_dic.items())
 
+        # Determine if the data is missing
+        c_nc = len([x for x in c_price.values() if x.strip() == ''])
+        p_nc = len([x for x in p_price.values() if x.strip() == ''])
+
+        # Get the contract ID
         c_price = get_cid(c_con, c_price, session)
         logger.debug('Got contract id ' + str(c_price['id']))
         p_price = get_cid(p_con, p_price, session)
         logger.debug('Got contract id ' + str(p_price['id']))
 
+        # See if this price is already in the db
         c_sq =session.query(OptionPrice).get((c_price['id'], c_price['date'], 
                                               c_price['time']))
         p_sq =session.query(OptionPrice).get((p_price['id'], p_price['date'], 
                                               p_price['time']))
 
-        c_nc = len([x for x in c_price.values() if x.strip() == ''])
-        p_nc = len([x for x in p_price.values() if x.strip() == ''])
-
+        # Add if data isn't missing and the price isn't already in db
         if not (c_sq or c_nc == 0):
             session.add(OptionPrice(**c_price))
             logger.debug('Adding the price for contract ' + str(c_price['id']))
