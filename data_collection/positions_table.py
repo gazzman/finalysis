@@ -24,7 +24,7 @@ class Position(Base):
     date = Column(DATE, primary_key=True, index=True)
     time = Column(Time(timezone=True), primary_key=True, index=True)
 
-    # Schwab fields
+    # Schwab and Fidelity fields
     symbol = Column(VARCHAR(6), primary_key=True, index=True)
     name = Column(String)
     quantity = Column(NUMERIC(17,4))
@@ -37,4 +37,3 @@ class Position(Base):
     reinvest_capital_gain = Column(VARCHAR(3))
     pct_of_account = Column(NUMERIC(9,2))
     security_type = Column(String)
-
