@@ -25,7 +25,6 @@ class Ticker(Base):
     underlying_prices = relationship('UnderlyingPrice', backref='tickers')
     option_contracts = relationship('OptionContract', backref='tickers')
 
-
 class UnderlyingPrice(Base):
     __tablename__ = 'underlying_prices'
     ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'),
@@ -43,7 +42,6 @@ class UnderlyingPrice(Base):
     open = Column(NUMERIC(8,3))
     volume = Column(INTEGER)
 
-
 class OptionContract(Base):
     __tablename__ = 'option_contracts'
     id = Column(INTEGER, primary_key=True)
@@ -53,7 +51,6 @@ class OptionContract(Base):
     strike = Column(NUMERIC(8,3), index=True)
     
     option_prices = relationship('OptionPrice', backref='option_contracts')
-
 
 class OptionPrice(Base):
     __tablename__ = 'option_prices'
@@ -68,10 +65,11 @@ class OptionPrice(Base):
     vol = Column(INTEGER)
     openint = Column(INTEGER)
 
-
 class ChainParser():
+#    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+#                     + '%(levelname)6s -- %(threadName)s: %(message)s')
     logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
-                     + '%(levelname)6s -- %(threadName)s: %(message)s')
+                     + '%(levelname)6s: %(message)s')
     logger = logging.getLogger('ChainParser')
 
     def __init__(self, filename, dbname, dbhost=''):
@@ -84,8 +82,9 @@ class ChainParser():
             self.add_ticker_to_db()
         if not self.session.query(UnderlyingPrice).get(up_key):
             self.add_up_to_db()
-        self.add_contracts_to_db()            
-
+        self.add_contracts_to_db()
+        self.session.close()
+        self.logger.info('Session closed')
 
     def init_logger(self):
         hdlr = TimedRotatingFileHandler('parser_output.log', when='midnight')
@@ -93,7 +92,6 @@ class ChainParser():
         hdlr.setFormatter(fmt)
         self.logger.addHandler(hdlr)
         self.logger.setLevel(logging.INFO)
-
 
     def init_db_connection(self, dbname, dbhost):
         self.logger.info('Connecting to db %s...' % dbname)
@@ -103,7 +101,6 @@ class ChainParser():
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.logger.info('Connected to db %s' % dbname)
-
 
     def parse_data(self, filename):
         self.logger.info('Parsing datafile %s...' % filename)
@@ -138,12 +135,10 @@ class ChainParser():
         self.logger.info('Parsed datafile %s. Took %0.3f seconds.' 
                          % (filename, self.seconds_elapsed(start, end)))
 
-
     def add_ticker_to_db(self):
         self.logger.info('Adding ticker %s' % self.ticker)
         self.session.add(Ticker(ticker=self.ticker))
         self.session.commit()
-
 
     def add_up_to_db(self):
         self.logger.info('Adding the price for %s at %s'
@@ -169,7 +164,6 @@ class ChainParser():
         self.logger.info('Adding price complete. Took %0.3f seconds'
                          % self.seconds_elapsed(start, end))
 
-
     def add_contracts_to_db(self):
         self.logger.info('Adding prices for %i contracts...' 
                          % self.num_contracts) 
@@ -188,18 +182,15 @@ class ChainParser():
                 last_date = expiry_date
             else:
                 expiry_date = last_date
-
             base_contract = {'ticker': self.ticker, 'expiry': expiry_date, 
                              'strike': strike}
-
             self.add_price_to_db(base_contract, 'C', self.call_head, c_data)
             self.add_price_to_db(base_contract, 'P', self.put_head, p_data)
         self.session.commit()
 
         end = datetime.now()
         self.logger.info('Adding contract prices complete. Took %0.3f seconds' 
-                         % seconds_elapsed(start, end))
-
+                         % self.seconds_elapsed(start, end))
 
     def add_price_to_db(self, base_contract, call_put, header, data):
         contract = dict([('call_put', call_put)] + base_contract.items())
@@ -220,7 +211,6 @@ class ChainParser():
                              contract['expiry'].strftime('%y%m%d'), call_put,
                              float(contract['strike'])*1000, self.date))
 
-
     def get_expiry_date(self, last_date, expiry):
         data_dow = self.dt_date.isoweekday()
         if 'week' in expiry.lower():
@@ -229,7 +219,7 @@ class ChainParser():
         elif 'q' in expiry.lower():
             quarter, year = expiry.split('-')
             month = int(quarter[1])*3
-            year = int(year)
+            year = int(self.dt_date.strftime('%C') + year)
             c = Calendar()
             last_day = c.monthdatescalendar(year, month)[-1][-1]
             while not (last_day.month == month and last_day.isoweekday() <= 5):
@@ -243,7 +233,6 @@ class ChainParser():
             if fridays[0].month == e_dt.month: return fridays[2]
             else: return fridays[3]
 
-
     def get_cid(self, con, price):
         db_con = self.session.query(OptionContract).filter_by(**con).first() 
         if not db_con:
@@ -252,7 +241,6 @@ class ChainParser():
             self.session.commit()
         price['id'] = db_con.id
         return price
-
 
     def seconds_elapsed(self, start, end):
         s = (end - start).seconds
