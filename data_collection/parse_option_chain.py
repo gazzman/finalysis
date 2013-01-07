@@ -207,7 +207,7 @@ class ChainParser():
                 self.logger.debug('Added the price for contract %i'
                                   % price['id'])
         else:
-            self.logger.info('No data for %s%s%s%08i on %s' % (self.ticker, 
+            self.logger.warn('No data for %s%s%s%08i on %s' % (self.ticker, 
                              contract['expiry'].strftime('%y%m%d'), call_put,
                              float(contract['strike'])*1000, self.date))
 
