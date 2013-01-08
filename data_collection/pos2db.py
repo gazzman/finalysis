@@ -50,7 +50,7 @@ class Position(Base):
     security_type = Column(String)
     
 class AddDBMixin():
-    def add_timezone(self, date, time, fmt='%Y-%m-%dT%H:%M:%S',
+    def add_timezone(self, date, time, fmt='%Y-%m-%d %H:%M:%S',
                      locale='US/Eastern'):
         tz = timezone(locale)
         dt = ' '.join([date, time])
@@ -89,10 +89,10 @@ class AddDBMixin():
         elif data == 'Cash & Money Market': return 'Cash'
         else: return data
 
-    def get_id(self, account):
-        db_acc = self.session.query(Account).filter_by(**account).first()
+    def get_id(self, acct_key):
+        db_acc = self.session.query(Account).filter_by(**acct_key).first()
         if not db_acc:
-            db_acc = Account(**account)
+            db_acc = Account(**acct_key)
             self.session.add(db_acc)
             self.session.commit()
         return db_acc.id
@@ -112,6 +112,23 @@ class AddDBMixin():
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.logger.info('Connected to db %s' % dbname)
+
+    def write_rows(self, acct_id, base, data_rows):
+        for data_row in data_rows:
+            try:
+                self.session.add(Position(**dict(data_row.items() + base)))
+                self.session.commit()
+            except IntegrityError as err:
+                if 'duplicate key' in str(err):
+                    msg = "Already have position data for account id %3i" 
+                    msg += " for symbol %6s at %s %s"
+                    msg = msg % (acct_id, data_row['symbol'], 
+                                    self.date, self.time)
+                    self.logger.info(msg)
+                    pass
+                else: raise err
+                self.session.rollback()        
+
         
 class Schwab2DB(AddDBMixin):
 #    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
@@ -122,7 +139,7 @@ class Schwab2DB(AddDBMixin):
     institution = ('institution', 'Schwab')
     fmt='%m/%d/%Y %H:%M:%S'
 
-    def __init__(self, filename, dbname, dbhost=''):
+    def __init__(self, dbname, dbhost=''):
         self.init_logger('schwab2db.log')
         self.init_db_connection(dbname, dbhost)
 
@@ -135,9 +152,7 @@ class Schwab2DB(AddDBMixin):
         lines = [x.strip() for x in pos_file.read().split('\n')]
         pos_line = [x for x in lines if 'positions' in x.lower()][0]
         dateinfo = pos_line.split('as of ')[-1].split()[0:2]
-        self.pos_time = {}
-        pos_time['date'], pos_time['time'] = add_timezone(*dateinfo,
-                                                          fmt=self.fmt)
+        self.date, self.time = self.add_timezone(*dateinfo, fmt=self.fmt)
 
         # Split up the data by account
         self.accts = [x for x in lines if 'xxxx' in x.lower()]
@@ -154,89 +169,80 @@ class Schwab2DB(AddDBMixin):
         end = datetime.now()
         self.logger.info('Processing completed. Took %0.3f seconds'
                          % self.seconds_elapsed(start, end))
+        self.add_to_db()                         
 
     def add_to_db(self):
-        # Get account ids
-        acct_keys = [dict([self.broker, ('account', x)]) for x in self.accts]
+        self.logger.info('Adding positions to database')
+        start = datetime.now()
+
+        acct_keys = [dict([self.institution, ('account', x)]) 
+                     for x in self.accts]
         acct_ids = [self.get_id(x) for x in acct_keys]
-        for acct_id, d in zip(acct_ids, data):
-            for row in d:
-                try:
-                    self.session.add(Position(**dict(row.items() 
-                                                   + self.pos_time.items() 
-                                                   + [('id', acct_id)])))
-                    self.session.commit()
-                except IntegrityError as err:
-                    if 'duplicate key' in str(err):
-                        msg = "Already have position data for account id %i" 
-                        msg += " for symbol '%s' at %s"
-                        msg = msg % (acc_id, row['symbol'], ' '.join(dateinfo))
-                        self.logger.info(msg)
-                        pass
-                    else: raise err
-                    self.session.rollback()        
+        for acct_id, acct_data in zip(acct_ids, self.data):
+            base = [('id', acct_id), ('date', self.date), ('time', self.time)]
+            self.write_rows(acct_id, base, acct_data)
 
-#class Fidelity2DB(AddDBMixin):
-#    pos_fname = sys.argv[1]
-#    db_name = sys.argv[2]
-#    institution = ('institution', 'Fidelity')
-#    pos_time = {}
+        end = datetime.now()
+        self.logger.info('Adding completed. Took %0.3f seconds'
+                         % self.seconds_elapsed(start, end))
 
+class Fidelity2DB(AddDBMixin):
 #    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
 #                     + '%(levelname)6s -- %(threadName)s: %(message)s')
-#    logger = logging.getLogger('fidelity2db')
-#    hdlr = TimedRotatingFileHandler('fidelity2db.log', when='midnight')
-#    fmt = logging.Formatter(fmt=logger_format)
-#    hdlr.setFormatter(fmt)
-#    logger.addHandler(hdlr)
-#    logger.setLevel(logging.INFO)
+    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+                     + '%(levelname)6s: %(message)s')
+    logger = logging.getLogger('Fidelity2DB')
+    institution = ('institution', 'Fidelity')
+    fmt = '%Y-%m-%d %H:%M:%S'
 
-#    logger.info('Reading ' + pos_fname)
-#    start = datetime.now()
+    def __init__(self, dbname, dbhost=''):
+        self.init_logger('fidelity2db.log')
+        self.init_db_connection(dbname, dbhost)
 
-#    # Get the timestamp from last file mod time
-#    modtime = time.localtime(os.path.getmtime(pos_fname))
-#    modtime = time.strftime('%m/%d/%Y %H:%M:%S', modtime).split()
-#    pos_time['date'], pos_time['time'] = add_timezone(*modtime)
+    def process_position_file(self, filename):
+        self.logger.info('Processing %s' % filename)
+        start = datetime.now()
 
-#    data = csv.DictReader(open(pos_fname, 'r'))
-#    data = [dict([(y[0], y[1]) for y in x.items() if y[0]])  for x in data]
-#    data = [dict([(fix_header(y[0]), fix_data(y[1])) 
-#                   for y in x.items() if fix_data(y[1])])  for x in data]
-#    account_number = data[0]['account_name/number']
+        # Get the timestamp from last file mod time
+        modtime = time.localtime(os.path.getmtime(filename))
+        modtime = time.strftime(self.fmt, modtime).split()
+        self.date, self.time = self.add_timezone(*modtime, fmt=self.fmt)
 
-#    data = [dict([(y[0], y[1]) for y in x.items() \
-#                  if y[0] != 'account_name/number'])  for x in data]
+        # Get the relevant data
+        data = csv.DictReader(open(filename, 'r'))
+        data = [dict([(y[0], y[1]) for y in x.items() if y[0]])  for x in data]
+        data = [dict([(self.fix_header(y[0]), self.fix_data(y[1])) 
+                      for y in x.items() if self.fix_data(y[1])])
+                for x in data]
+        self.acct_num = data[0]['account_name/number']
+        self.data = [dict([(y[0], y[1]) for y in x.items() \
+                     if y[0] != 'account_name/number'])  for x in data]
 
-#    # Connect to db
-#    dburl = 'postgresql+psycopg2:///' + db_name
-#    engine = create_engine(dburl)
+        end = datetime.now()
+        self.logger.info('Processing completed. Took %0.3f seconds'
+                         % self.seconds_elapsed(start, end))
+        self.add_to_db()                         
 
-#    Base.metadata.create_all(engine)
-#    Session = sessionmaker(bind=engine)
-#    session = Session()
 
-#    # Get account ids
-#    account = dict([institution, ('account', account_number)])
-#    account_id = get_id(account, session)
+    def add_to_db(self):
+        self.logger.info('Adding positions to database')
+        start = datetime.now()
 
-#    for row in data:
-#        try:
-#            session.add(Position(**dict(row.items() + pos_time.items() 
-#                                        + [('id', account_id)])))
-#            session.commit()
-#        except IntegrityError as err:
-#            if 'duplicate key' in str(err):
-#                msg = 'Already have position data for account id '
-#                msg += str(account_id) + ' for ticker ' + row['symbol'] 
-#                msg += ' at ' + ' '.join(modtime)
-#                logger.info(msg)
-#                pass
-#            else: raise err
-#            session.rollback()
+        # Get account ids
+        acct_key = dict([self.institution, ('account', self.acct_num)])
+        acct_id = self.get_id(acct_key)
+        base = [('id', acct_id), ('date', self.date), ('time', self.time)]
+        self.write_rows(acct_id, base, self.data)
+
+        end = datetime.now()
+        self.logger.info('Adding completed. Took %0.3f seconds'
+                         % self.seconds_elapsed(start, end))
             
 # For running from command line
 if __name__ == "__main__":
     pos_fname = sys.argv[1]
     db_name = sys.argv[2]
-    s2db = Schwab2DB(pos_fname, dbname)
+#    s2db = Schwab2DB(db_name)
+#    s2db.process_position_file(pos_fname)
+#    f2db = Fidelity2DB(db_name)
+#    f2db.process_position_file(pos_fname)
