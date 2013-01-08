@@ -373,10 +373,6 @@ class InteractiveBrokers2DB(AddDBMixin):
         self.init_logger('interactivebrokers2db.log')
         self.init_db_connection(dbname, dbhost)
 
-    def get_indexes(self, begins):
-        lines = [x for x in self.data if begins == x[0:len(begins)]]
-        return [row_list.index(x) for x in lines]
-
     def process_position_file(self, filename):
         self.logger.info('Processing %s' % filename)
         start = datetime.now()
