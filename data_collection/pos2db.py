@@ -11,105 +11,16 @@ import time
 from BeautifulSoup import BeautifulSoup
 from pytz import timezone
 from sqlalchemy import create_engine
-from sqlalchemy import Column, ForeignKey, Integer, String, Time
-from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import (CHAR, DATE, INTEGER, 
-                                            NUMERIC, VARCHAR)
 
-Base = declarative_base()
-
-class Account(Base):
-    __tablename__ = 'accounts'
-    # Identifying fields    
-    id = Column(Integer, primary_key=True, unique=True)
-    institution = Column(String, primary_key=True)
-    account = Column(String, primary_key=True)
-
-    positions = relationship('Position', backref='accounts')
-
-class Position(Base):
-    __tablename__ = 'positions'
-    id = Column(Integer, ForeignKey('accounts.id'), primary_key=True,
-                index=True)
-    date = Column(DATE, primary_key=True, index=True)
-    time = Column(Time(timezone=True), primary_key=True, index=True)
-
-    # Schwab and Fidelity fields
-    symbol = Column(VARCHAR(6), primary_key=True, index=True)
-    name = Column(String)
-    quantity = Column(NUMERIC(17,4))
-    price = Column(NUMERIC(16,3))
-    change = Column(NUMERIC(16,3))
-    market_value = Column(NUMERIC(16,3))
-    day_change_dollar = Column(NUMERIC(16,3))
-    day_change_pct = Column(NUMERIC(9,2))
-    reinvest_dividends = Column(VARCHAR(3))
-    reinvest_capital_gain = Column(VARCHAR(3))
-    pct_of_account = Column(NUMERIC(9,2))
-    security_type = Column(String)
-
-    # Scottrade 
-    acct_type = Column(String)
-    annual_dividend = Column(NUMERIC(16,3))
-    ask = Column(NUMERIC(16,3))
-    ask_exchange = Column(String)
-    ask_size = Column(INTEGER)
-    average_daily_volume_100 = Column(INTEGER)
-    average_daily_volume_22 = Column(INTEGER)
-    beta = Column(NUMERIC(9,3))
-    bid = Column(NUMERIC(16,3))
-    bid_exchange = Column(String)
-    bid_size = Column(INTEGER)
-    cur_qtr_est_eps = Column(NUMERIC(9,2))
-    cur_year_est_eps = Column(NUMERIC(9,2))
-    currency = Column(VARCHAR(3))
-    cusip = Column(INTEGER)
-    div_pay_date = Column(DATE)
-    dividend_yield = Column(NUMERIC(9,2))
-    est_report_date = Column(DATE)
-    growth_5_year = Column(NUMERIC(16,3))
-    high = Column(NUMERIC(16,3))
-    high_52wk = Column(NUMERIC(16,3))
-    high_52wk_date = Column(DATE)
-    last_12_month_eps = Column(NUMERIC(9,2))
-    last_dividend = Column(NUMERIC(16,3))
-    last_ex_div_date = Column(DATE)
-    low = Column(NUMERIC(16,3))
-    low_52wk = Column(NUMERIC(16,3))
-    low_52wk_date = Column(DATE)
-    month_close_price = Column(NUMERIC(16,3))
-    moving_average_100 = Column(NUMERIC(16,3))
-    moving_average_21 = Column(NUMERIC(16,3))
-    moving_average_50 = Column(NUMERIC(16,3))
-    moving_average_9 = Column(NUMERIC(16,3))
-    nav = Column(NUMERIC(16,3))
-    next_ex_div_date = Column(DATE)
-    next_qtr_est_eps = Column(NUMERIC(9,2))
-    next_year_est_eps = Column(NUMERIC(9,2))
-    open = Column(NUMERIC(16,3))
-    open_interest = Column(INTEGER)
-    p_e_ratio = Column(NUMERIC(16,3))
-    prev_close = Column(NUMERIC(16,3))
-    primary_exchange = Column(String)
-    qtr_close_price = Column(NUMERIC(16,3))
-    ror_12month = Column(NUMERIC(11,4))
-    time_traded = Column(Time)
-    volatility_20day = Column(NUMERIC(11,4))
-    volume = Column(INTEGER)
-    week_close_price = Column(NUMERIC(16,3))
-    year_close_price = Column(NUMERIC(16,3))
-
-    # InteractiveBrokers
-    multiplier = Column(INTEGER)
+from positions_table import Account, Base, Position
 
 class AddDBMixin():
-    def add_timezone(self, date, time, fmt='%Y-%m-%d%H:%M:%S',
+    def add_timezone(self, dt_string, fmt='%Y-%m-%d %H:%M:%S',
                      locale='US/Eastern'):
         tz = timezone(locale)
-        dt = ''.join([date, time])
-        dt = datetime.strptime(dt, fmt)
+        dt = datetime.strptime(dt_string, fmt)
         tzone = tz.tzname(dt)
         return dt.date().isoformat(), ' '.join([dt.time().isoformat(), tzone])
 
@@ -228,8 +139,8 @@ class Schwab2DB(AddDBMixin):
         pos_file = open(filename, 'r')
         lines = [x.strip() for x in pos_file.read().split('\n')]
         pos_line = [x for x in lines if 'positions' in x.lower()][0]
-        dateinfo = pos_line.split('as of ')[-1].split()[0:2]
-        self.date, self.time = self.add_timezone(*dateinfo, fmt=self.fmt)
+        dateinfo = ''.join(pos_line.split('as of ')[-1].split()[0:2])
+        self.date, self.time = self.add_timezone(dateinfo, fmt=self.fmt)
 
         # Split up the data by account
         self.accts = [x for x in lines if 'xxxx' in x.lower()]
@@ -270,7 +181,7 @@ class Fidelity2DB(AddDBMixin):
                      + '%(levelname)6s: %(message)s')
     logger = logging.getLogger('Fidelity2DB')
     institution = ('institution', 'Fidelity')
-    fmt = '%Y-%m-%d%H:%M:%S'
+    fmt = '%Y-%m-%dT%H:%M:%S'
 
     def __init__(self, dbname, dbhost=''):
         self.init_logger('fidelity2db.log')
@@ -282,8 +193,8 @@ class Fidelity2DB(AddDBMixin):
 
         # Get the timestamp from last file mod time
         modtime = time.localtime(os.path.getmtime(filename))
-        modtime = time.strftime(self.fmt, modtime).split()
-        self.date, self.time = self.add_timezone(*modtime, fmt=self.fmt)
+        modtime = time.strftime(self.fmt, modtime)
+        self.date, self.time = self.add_timezone(modtime, fmt=self.fmt)
 
         # Get the relevant data
         data = csv.DictReader(open(filename, 'r'))
@@ -291,9 +202,9 @@ class Fidelity2DB(AddDBMixin):
         data = [dict([(self.fix_header(y[0]), self.fix_data(y[1])) 
                       for y in x.items() if self.fix_data(y[1])])
                 for x in data]
-        self.acct_num = data[0]['account_name/number']
+        self.acct_num = data[0]['account_name_number']
         self.data = [dict([(y[0], y[1]) for y in x.items() \
-                     if y[0] != 'account_name/number'])  for x in data]
+                     if y[0] != 'account_name_number'])  for x in data]
 
         end = datetime.now()
         self.logger.info('Processing completed. Took %0.3f seconds'
@@ -412,11 +323,11 @@ if __name__ == "__main__":
     db_name = sys.argv[2]
     if len(sys.argv) > 3: acct_num = sys.argv[3]
     else: acct_num = ''
-#    s2db = Schwab2DB(db_name)
-#    s2db.process_position_file(pos_fname)
+    s2db = Schwab2DB(db_name)
+    s2db.process_position_file(pos_fname)
 #    f2db = Fidelity2DB(db_name)
 #    f2db.process_position_file(pos_fname)
 #    s2db = Scottrade2DB(db_name)
 #    s2db.process_position_file(pos_fname, acct_num)
-    ib2db = InteractiveBrokers2DB(db_name)
-    ib2db.process_position_file(pos_fname)
+#    ib2db = InteractiveBrokers2DB(db_name)
+#    ib2db.process_position_file(pos_fname)
