@@ -8,6 +8,7 @@ import os.path
 import sys
 import time
 
+from BeautifulSoup import BeautifulSoup
 from pytz import timezone
 from sqlalchemy import create_engine
 from sqlalchemy import Column, ForeignKey, Integer, String, Time
@@ -100,6 +101,9 @@ class Position(Base):
     week_close_price = Column(NUMERIC(16,3))
     year_close_price = Column(NUMERIC(16,3))
 
+    # InteractiveBrokers
+    multiplier = Column(INTEGER)
+
 class AddDBMixin():
     def add_timezone(self, date, time, fmt='%Y-%m-%d%H:%M:%S',
                      locale='US/Eastern'):
@@ -147,6 +151,10 @@ class AddDBMixin():
         elif header == '52_wk_low_date': return 'low_52wk_date'
         elif header == '12_month_ror': return 'ror_12month'
         elif header == '20_day_volatility': return 'volatility_20day'
+        # commonize InteractiveBroker headers
+        elif header == 'currencyprimary': return 'currency'
+        elif header == 'markprice': return 'price'
+        elif header == 'positionvalue': return 'market_value'
         else: return header
 
     def fix_data(self, data):
@@ -352,6 +360,56 @@ class Scottrade2DB(AddDBMixin):
         self.logger.info('Adding completed. Took %0.3f seconds'
                          % self.seconds_elapsed(start, end))
 
+class InteractiveBrokers2DB(AddDBMixin):
+#    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+#                     + '%(levelname)6s -- %(threadName)s: %(message)s')
+    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+                     + '%(levelname)6s: %(message)s')
+    logger = logging.getLogger('InteractiveBrokers2DB')
+    institution = ('institution', 'InteractiveBrokers')
+    fmt = '%Y%m%d;%H%M%S'
+
+    def __init__(self, dbname, dbhost=''):
+        self.init_logger('scottrade2db.log')
+        self.init_db_connection(dbname, dbhost)
+
+    def get_indexes(self, begins):
+        lines = [x for x in self.data if begins == x[0:len(begins)]]
+        return [row_list.index(x) for x in lines]
+
+    def process_position_file(self, filename):
+        self.logger.info('Processing %s' % filename)
+        start = datetime.now()
+
+        soup = BeautifulSoup(open(filename, 'r'))
+#            
+#        self.date, self.time = self.add_timezone(filename, '', fmt=self.fmt)
+
+#        # Get the relevant data
+#        data = csv.DictReader(open(filename, 'r'))
+#        self.data = [dict([(self.fix_header(y[0]), self.fix_data(y[1])) 
+#                      for y in x.items() if self.fix_data(y[1])])
+#                for x in data]
+
+#        end = datetime.now()
+#        self.logger.info('Processing completed. Took %0.3f seconds'
+#                         % self.seconds_elapsed(start, end))
+#        self.add_to_db(account_num)                         
+
+#    def add_to_db(self, account_num):
+#        self.logger.info('Adding positions to database')
+#        start = datetime.now()
+
+#        # Get account ids
+#        acct_key = dict([self.institution, ('account', acct_num)])
+#        acct_id = self.get_id(acct_key)
+#        base = [('id', acct_id), ('date', self.date), ('time', self.time)]
+#        self.write_rows(acct_id, base, self.data)
+
+#        end = datetime.now()
+#        self.logger.info('Adding completed. Took %0.3f seconds'
+#                         % self.seconds_elapsed(start, end))
+
 # For running from command line
 if __name__ == "__main__":
     pos_fname = sys.argv[1]
@@ -362,5 +420,7 @@ if __name__ == "__main__":
 #    s2db.process_position_file(pos_fname)
 #    f2db = Fidelity2DB(db_name)
 #    f2db.process_position_file(pos_fname)
-    s2db = Scottrade2DB(db_name)
-    s2db.process_position_file(pos_fname, acct_num)
+#    s2db = Scottrade2DB(db_name)
+#    s2db.process_position_file(pos_fname, acct_num)
+    ib2db = InteractiveBrokers2DB(db_name)
+    ib2db.process_position_file(pos_fname)
