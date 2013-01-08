@@ -370,7 +370,7 @@ class InteractiveBrokers2DB(AddDBMixin):
     fmt = '%Y%m%d;%H%M%S'
 
     def __init__(self, dbname, dbhost=''):
-        self.init_logger('scottrade2db.log')
+        self.init_logger('interactivebrokers2db.log')
         self.init_db_connection(dbname, dbhost)
 
     def get_indexes(self, begins):
