@@ -7,12 +7,12 @@ CREATE VIEW pcp_data AS
          stock.bid stock_bid, 
          call_contract.id call_id, 
          put_contract.id put_id, 
+         call_contract.expiry,
          call_contract.strike, 
          call.ask call_ask, 
          call.bid call_bid, 
          put.ask put_ask, 
-         put.bid put_bid, 
-         call_contract.expiry - stock.date days_to_expiry
+         put.bid put_bid
     FROM 
         underlying_prices stock, 
         option_prices put, 
