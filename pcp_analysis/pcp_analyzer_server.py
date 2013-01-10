@@ -60,13 +60,15 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         date, time = dt.split('T')
         p = apcp.PCPAnalyzer(DBNAME, dbhost=DBHOST)
         results = p.session.execute(p.base_query().\
-                                  filter(apcp.stock.ticker==ticker).\
-                                  filter(apcp.stock.date==date).\
-                                  filter(apcp.stock.time==time).\
-                                  filter(apcp.call.bid>0, apcp.put.bid>0).\
-                                  order_by(apcp.call_contract.id, 
-                                           apcp.stock.date, 
-                                           apcp.stock.time)).fetchall()
+            filter(apcp.stock.bid>apcp.call_contract.strike).\
+            filter(apcp.call_contract.expiry-apcp.stock.date<=10).\
+            filter(apcp.stock.ticker==ticker).\
+            filter(apcp.stock.date==date).\
+            filter(apcp.stock.time==time).\
+            filter(apcp.call.bid>0, apcp.put.bid>0).\
+            order_by(apcp.call_contract.id, 
+                    apcp.stock.date, 
+                    apcp.stock.time)).fetchall()
         for result in results:
             ls_cash_out, sl_cash_out = p.cash_out_today(result, LEND, BORR)
             if ls_cash_out < 0 or sl_cash_out < 0:
