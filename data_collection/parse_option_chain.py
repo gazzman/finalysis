@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from calendar import Calendar
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta as td
 from logging.handlers import TimedRotatingFileHandler
 import logging
 import sys
@@ -214,8 +215,8 @@ class ChainParser():
     def get_expiry_date(self, last_date, expiry):
         data_dow = self.dt_date.isoweekday()
         if 'week' in expiry.lower():
-            if last_date: return last_date + timedelta(days=7)
-            else: return self.dt_date + timedelta(days=(5 - data_dow))
+            if last_date: return last_date + td(days=7)
+            else: return self.dt_date + td(days=(6 - data_dow))
         elif 'q' in expiry.lower():
             quarter, year = expiry.split('-')
             month = int(quarter[1])*3
@@ -223,15 +224,15 @@ class ChainParser():
             c = Calendar()
             last_day = c.monthdatescalendar(year, month)[-1][-1]
             while not (last_day.month == month and last_day.isoweekday() <= 5):
-                last_day = last_day - timedelta(days=1)
+                last_day = last_day - td(days=1)
             return last_day        
         else:
             e_dt = datetime.strptime(expiry, '%b-%y')
             c = Calendar()
             fridays = [x[4] 
                        for x in c.monthdatescalendar(e_dt.year, e_dt.month)]
-            if fridays[0].month == e_dt.month: return fridays[2]
-            else: return fridays[3]
+            if fridays[0].month == e_dt.month: return fridays[2] + td(days=1)
+            else: return fridays[3] + td(days=1)
 
     def get_cid(self, con, price):
         db_con = self.session.query(OptionContract).filter_by(**con).first() 
