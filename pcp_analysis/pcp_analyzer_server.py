@@ -70,12 +70,12 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 
         for result in results:
             ls_cash_out, sl_cash_out = p.cash_out_today(result, LEND, BORR)
-            if ls_cash_out < -0.009 or sl_cash_out < -0.009:
+            if ls_cash_out < 0 or sl_cash_out < 0:
                 call_id = p.gen_contract_id(result, 'C')
                 put_id = p.gen_contract_id(result, 'P')
-                if ls_cash_out < -0.009:
+                if ls_cash_out < 0:
                     report_ls(result, ticker, call_id, put_id, ls_cash_out)
-                if sl_cash_out < -0.009:
+                if sl_cash_out < 0:
                     report_sl(result, ticker, call_id, put_id, sl_cash_out)
 
 if __name__ == '__main__':
