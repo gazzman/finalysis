@@ -58,10 +58,10 @@ class PCPAnalyzer():
         return round(s + m/1000000.0,3)
 
     def gen_contract_id(self, row, call_put):
-        return ('%s%s%s%08i' % (row['stock_ticker'],
-                                row['contract_expiry'].strftime('%y%m%d'), 
-                                call_put.upper(),
-                                row['contract_strike']*1000))
+        return '{0:<6}{1:%y%m%d}{2}{3:08.0f}'.format(row['stock_ticker'],
+                                                  row['contract_expiry'], 
+                                                  call_put.upper(),
+                                                  row['contract_strike']*1000)
 
     def solve_for_r(self, numerator, desc, row):
         days_to_expiry = row['contract_expiry'] - row['stock_date']
@@ -90,7 +90,7 @@ class PCPAnalyzer():
         return (self.solve_for_r(ls_num, 'Long-short', row), 
                 self.solve_for_r(sl_num, 'Short-long', row))
 
-    def cash_in_today(self, row, r_lend, r_borrow):
+    def cash_out_today(self, row, r_lend, r_borrow):
         days_to_expiry = row['contract_expiry'] - row['stock_date']
         ls_df = Decimal(str(exp(-r_lend*days_to_expiry.days/365.0)))
         sl_df = Decimal(str(exp(-r_borrow*days_to_expiry.days/365.0)))
@@ -137,9 +137,19 @@ if __name__ == "__main__":
     db_host = sys.argv[2]
     ticker = sys.argv[3]
     date = sys.argv[4]
+    lend_rate = float(sys.argv[5])
+    borrow_rate = float(sys.argv[6])
     p = PCPAnalyzer(db_name, dbhost=db_host)
-    r = p.session.execute(p.base_query().filter(stock.date == date).filter(stock.ticker == ticker).filter(call.bid > 0, put.bid > 0).order_by(call_contract.id, stock.date, stock.time).limit(10000)).fetchall()
+    r = p.session.execute(p.base_query().\
+                              filter(stock.date == date).\
+                              filter(stock.ticker == ticker).\
+                              filter(call.bid > 0, put.bid > 0).\
+                              order_by(call_contract.id, 
+                                       stock.date, 
+                                       stock.time).\
+                              limit(10000)).\
+                          fetchall()
     for i in r:
-        print i['stock_date'], i['stock_time'], p.gen_contract_id(i, 'C'), p.gen_contract_id(i, 'P'), p.cash_in_today(i, .0015, .0015), p.zero_cash_in_rates(i)
+        print i['stock_date'], i['stock_time'], i['stock_ask'], i['stock_bid'], i['stock_ask']-i['stock_bid'], p.gen_contract_id(i, 'C'), p.gen_contract_id(i, 'P'), p.cash_in_today(i, lend_rate, borrow_rate)
 
-    p.session.close()        
+    p.session.close()
