@@ -48,10 +48,10 @@ def report_sl(result, ticker, call_id, put_id, sl_cash_out):
         f.write(header + "\n")
         f.write(data + "\n"*2)
 
-class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
     pass
 
-class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
+class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         e_filename = self.request.recv(1024).strip()
         poc.ChainParser(e_filename, DBNAME, DBHOST)
@@ -85,5 +85,5 @@ if __name__ == '__main__':
     DBHOST = sys.argv[4]
     LEND = float(sys.argv[5])
     BORR = float(sys.argv[6])
-    server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+    server = ForkedTCPServer((HOST, PORT), ForkedTCPRequestHandler)
     server.serve_forever()
