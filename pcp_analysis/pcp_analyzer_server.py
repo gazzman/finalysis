@@ -67,7 +67,6 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
                                   order_by(apcp.call_contract.id, 
                                            apcp.stock.date, 
                                            apcp.stock.time)).fetchall()
-
         for result in results:
             ls_cash_out, sl_cash_out = p.cash_out_today(result, LEND, BORR)
             if ls_cash_out < 0 or sl_cash_out < 0:
@@ -77,6 +76,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     report_ls(result, ticker, call_id, put_id, ls_cash_out)
                 if sl_cash_out < 0:
                     report_sl(result, ticker, call_id, put_id, sl_cash_out)
+        p.session.close()                    
 
 if __name__ == '__main__':
     HOST = sys.argv[1]
