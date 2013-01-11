@@ -16,7 +16,6 @@ DFMT = '{date:%Y-%m-%d}, {time:%H:%M:%S%z}, {ticker:^6}, {call_id:^21}, '
 DFMT += '{put_id:^21}, {call:>8.3f}, {strike:>8.3f}, {stock:>8.3f}, '
 DFMT += '{put:>8.3f}, {cash:>8.3f}'
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
 def report_ls(result, ticker, call_id, put_id, ls_cash_out):
@@ -87,6 +86,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     expiry = call_id[6:12]
                     strike = str(Decimal(call_id[14:])/1000)
                     message = ','.join([ticker, expiry, strike, '1', 'long'])
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.connect((TRADINGHOST, TRADINGPORT))
                     sock.sendall(message + '\n')
                     sock.close()
@@ -94,6 +94,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     expiry = call_id[6:12]
                     strike = str(Decimal(call_id[14:])/1000)
                     message = ','.join([ticker, expiry, strike, '1', 'short'])
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     sock.connect((TRADINGHOST, TRADINGPORT))
                     sock.sendall(message + '\n')
                     sock.close()
@@ -108,6 +109,5 @@ if __name__ == '__main__':
     DBHOST = sys.argv[6]
     LEND = float(sys.argv[7])
     BORR = float(sys.argv[8])
-   
     server = ForkedTCPServer((SERVERHOST, SERVERPORT), ForkedTCPRequestHandler)
     server.serve_forever()
