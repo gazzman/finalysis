@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from decimal import Decimal
 import SocketServer
 import socket
 import sys
