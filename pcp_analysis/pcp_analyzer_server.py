@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import SocketServer
+import socket
 import sys
 import threading
 from time import sleep
@@ -13,6 +14,9 @@ HFMT += '{call:^8}, {strike:^8}, {stock:^8}, {put:^8}, {cash:^9}'
 DFMT = '{date:%Y-%m-%d}, {time:%H:%M:%S%z}, {ticker:^6}, {call_id:^21}, '
 DFMT += '{put_id:^21}, {call:>8.3f}, {strike:>8.3f}, {stock:>8.3f}, '
 DFMT += '{put:>8.3f}, {cash:>8.3f}'
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 
 def report_ls(result, ticker, call_id, put_id, ls_cash_out):
     header = HFMT.format(date='DATE', time='TIME', ticker='TICKER', 
@@ -78,14 +82,31 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     report_ls(result, ticker, call_id, put_id, ls_cash_out)
                 if sl_cash_out < 0:
                     report_sl(result, ticker, call_id, put_id, sl_cash_out)
+                if ls_cash_out < Decimal('-.04'):
+                    expiry = call_id[6:12]
+                    strike = str(Decimal(call_id[14:])/1000)
+                    message = ','.join([ticker, expiry, strike, '1', 'long'])
+                    sock.connect((TRADINGHOST, TRADINGPORT))
+                    sock.sendall(message + '\n')
+                    sock.close()
+                if sl_cash_out < Decimal('-.04'):
+                    expiry = call_id[6:12]
+                    strike = str(Decimal(call_id[14:])/1000)
+                    message = ','.join([ticker, expiry, strike, '1', 'short'])
+                    sock.connect((TRADINGHOST, TRADINGPORT))
+                    sock.sendall(message + '\n')
+                    sock.close()
         p.session.close()                    
 
 if __name__ == '__main__':
-    HOST = sys.argv[1]
-    PORT = int(sys.argv[2])
-    DBNAME = sys.argv[3]
-    DBHOST = sys.argv[4]
-    LEND = float(sys.argv[5])
-    BORR = float(sys.argv[6])
-    server = ForkedTCPServer((HOST, PORT), ForkedTCPRequestHandler)
+    SERVERHOST = sys.argv[1]
+    SERVERPORT = int(sys.argv[2])
+    TRADINGHOST = sys.argv[3]
+    TRADINGPORT = int(sys.argv[4])
+    DBNAME = sys.argv[5]
+    DBHOST = sys.argv[6]
+    LEND = float(sys.argv[7])
+    BORR = float(sys.argv[8])
+   
+    server = ForkedTCPServer((SERVERHOST, SERVERPORT), ForkedTCPRequestHandler)
     server.serve_forever()
