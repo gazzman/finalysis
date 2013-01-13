@@ -40,12 +40,12 @@ class PCPAnalyzer():
         self.init_db_connection(dbname, dbhost)
 
     def init_db_connection(self, dbname, dbhost):
-        logger.info('Connecting to db %s...' % dbname)
+        logger.debug('Connecting to db %s...' % dbname)
         dburl = 'postgresql+psycopg2://%s/%s' % (dbhost, dbname)
         self.engine = create_engine(dburl)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        logger.info('Connected to db %s' % dbname)
+        logger.debug('Connected to db %s' % dbname)
 
     def seconds_elapsed(self, start, end):
         s = (end - start).seconds
