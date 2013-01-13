@@ -108,6 +108,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     analogger.info(SENDTRADE, ls_cash_out, 'SHORT', ticker, 
                                    expiry, strike)
         p.session.close()                    
+        analogger.debug('Closed connection')
 
 if __name__ == '__main__':
     SERVERHOST = sys.argv[1]
