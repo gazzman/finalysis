@@ -5,7 +5,7 @@ import socket
 import sys
 
 HOST = sys.argv[1]
-PORT = sys.argv[2]
+PORT = int(sys.argv[2])
 fname = sys.argv[3]
 
 fname = os.path.abspath(fname)
