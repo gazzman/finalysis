@@ -1,6 +1,8 @@
 #!/usr/bin/python
 from decimal import Decimal
 import SocketServer
+import logging
+import signal
 import socket
 import sys
 import threading
@@ -16,7 +18,10 @@ DFMT = '{date:%Y-%m-%d}, {time:%H:%M:%S%z}, {ticker:^6}, {call_id:^21}, '
 DFMT += '{put_id:^21}, {call:>8.3f}, {strike:>8.3f}, {stock:>8.3f}, '
 DFMT += '{put:>8.3f}, {cash:>8.3f}'
 
+SENDTRADE = 'Sent %0.3f %s REVERSAL for ticker %s, expiry %s, strike %s'
 
+parlogger = logging.getLogger(poc.__name__)
+analogger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
 def report_ls(result, ticker, call_id, put_id, ls_cash_out):
     header = HFMT.format(date='DATE', time='TIME', ticker='TICKER', 
@@ -90,6 +95,8 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     sock.connect((TRADINGHOST, TRADINGPORT))
                     sock.sendall(message + '\n')
                     sock.close()
+                    analogger.info(SENDTRADE, ls_cash_out, 'LONG', ticker, 
+                                   expiry, strike)
                 if sl_cash_out < Decimal('-.04'):
                     expiry = call_id[6:12]
                     strike = str(Decimal(call_id[14:])/1000)
@@ -98,6 +105,8 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                     sock.connect((TRADINGHOST, TRADINGPORT))
                     sock.sendall(message + '\n')
                     sock.close()
+                    analogger.info(SENDTRADE, ls_cash_out, 'SHORT', ticker, 
+                                   expiry, strike)
         p.session.close()                    
 
 if __name__ == '__main__':
@@ -109,5 +118,17 @@ if __name__ == '__main__':
     DBHOST = sys.argv[6]
     LEND = float(sys.argv[7])
     BORR = float(sys.argv[8])
+    parlogger.info('Starting analyzer server')
+    analogger.info('Starting analyzer server')
     server = ForkedTCPServer((SERVERHOST, SERVERPORT), ForkedTCPRequestHandler)
-    server.serve_forever()
+    parlogger.info('Listening on socket %s:%i', SERVERHOST, SERVERPORT)
+    parlogger.info('Sending to socket %s:%i', TRADINGHOST, TRADINGPORT)
+    analogger.info('Listening on socket %s:%i', SERVERHOST, SERVERPORT)
+    analogger.info('Sending to socket %s:%i', TRADINGHOST, TRADINGPORT)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.shutdown()
+        parlogger.warn('Analyzer server shutdown')
+        analogger.warn('Analyzer server shutdown')
+        sys.exit(0)
