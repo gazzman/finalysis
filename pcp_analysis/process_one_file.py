@@ -16,7 +16,7 @@ if len(sys.argv) == 6: size_mb = int(sys.argv[5])/(1024.0*1024.0) # byte to Mi
 else: size_mb = 1.0
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect((TRADINGHOST, TRADINGPORT))
+sock.connect((HOST, PORT))
 sock.sendall(fname + '\n')
 sock.close()
 
