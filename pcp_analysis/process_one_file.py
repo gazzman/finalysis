@@ -9,7 +9,7 @@ PORT = int(sys.argv[2])
 fname = sys.argv[3]
 
 fname = os.path.abspath(fname)
-if len(sys.argv) == 5: conprocs = int(sys.argv[4])
+if len(sys.argv) >= 5: conprocs = int(sys.argv[4])
 else: conprocs = 1
 
 if len(sys.argv) == 6: size_mb = int(sys.argv[5])/(1024.0*1024.0) # byte to Mi
