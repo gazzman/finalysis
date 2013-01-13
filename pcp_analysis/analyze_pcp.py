@@ -16,7 +16,15 @@ from finalysis.data_collection.parse_option_chain import (UnderlyingPrice,
                                                           OptionContract,
                                                           OptionPrice)
 
-logging.getLogger('sqlalchemy.dialects.postgresql').setLevel(logging.INFO)
+logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+                    + '%(levelname)8s: %(message)s')
+logger = logging.getLogger('sqlalchemy.dialects.postgresql')
+logger.setLevel(logging.INFO)
+hdlr = TimedRotatingFileHandler('pcp_analyzer.log', when='midnight')
+fmt = logging.Formatter(fmt=logger_format)
+hdlr.setFormatter(fmt)
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
 
 Base = declarative_base()
 
@@ -27,30 +35,17 @@ call = aliased(OptionPrice, name='call')
 put = aliased(OptionPrice, name='put')
 
 class PCPAnalyzer():
-#    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
-#                     + '%(levelname)6s -- %(threadName)s: %(message)s')
-    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
-                     + '%(levelname)6s: %(message)s')
-    logger = logging.getLogger('PCPAnalyzer')
 
     def __init__(self, dbname, dbhost=''):
-        self.init_logger()
         self.init_db_connection(dbname, dbhost)
 
-    def init_logger(self):
-        hdlr = TimedRotatingFileHandler('pcp_analyzer.log', when='midnight')
-        fmt = logging.Formatter(fmt=self.logger_format)
-        hdlr.setFormatter(fmt)
-        self.logger.addHandler(hdlr)
-        self.logger.setLevel(logging.INFO)
-
     def init_db_connection(self, dbname, dbhost):
-        self.logger.info('Connecting to db %s...' % dbname)
+        logger.info('Connecting to db %s...' % dbname)
         dburl = 'postgresql+psycopg2://%s/%s' % (dbhost, dbname)
         self.engine = create_engine(dburl)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        self.logger.info('Connected to db %s' % dbname)
+        logger.info('Connected to db %s' % dbname)
 
     def seconds_elapsed(self, start, end):
         s = (end - start).seconds
@@ -80,7 +75,7 @@ class PCPAnalyzer():
                            row['contract_expiry'].isoformat(),
                            row['stock_date'].isoformat(),
                            row['stock_time'].isoformat())
-                self.logger.error(errmsg % errdata)
+                logger.error(errmsg % errdata)
             else: raise err
         return rate
 
