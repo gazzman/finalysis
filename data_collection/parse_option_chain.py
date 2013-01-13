@@ -15,6 +15,17 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import (BOOLEAN, CHAR, DATE, INTEGER, 
                                             NUMERIC, VARCHAR)
 
+#    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+#                     + '%(levelname)6s -- %(threadName)s: %(message)s')
+logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
+                    + '%(levelname)8s: %(message)s')
+logger = logging.getLogger(__name__)
+hdlr = TimedRotatingFileHandler('parser_output.log', when='midnight')
+fmt = logging.Formatter(fmt=logger_format)
+hdlr.setFormatter(fmt)
+logger.addHandler(hdlr)
+logger.setLevel(logging.INFO)
+
 Base = declarative_base()
 
 class Ticker(Base):
@@ -67,14 +78,7 @@ class OptionPrice(Base):
     openint = Column(INTEGER)
 
 class ChainParser():
-#    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
-#                     + '%(levelname)6s -- %(threadName)s: %(message)s')
-    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
-                     + '%(levelname)6s: %(message)s')
-    logger = logging.getLogger('ChainParser')
-
     def __init__(self, filename, dbname, dbhost=''):
-        self.init_logger()
         self.init_db_connection(dbname, dbhost)
         self.parse_data(filename)
         self.dt_date = datetime.strptime(self.date, '%Y-%m-%d').date()
@@ -85,26 +89,19 @@ class ChainParser():
             self.add_up_to_db()
         self.add_contracts_to_db()
         self.session.close()
-        self.logger.info('Session closed')
-
-    def init_logger(self):
-        hdlr = TimedRotatingFileHandler('parser_output.log', when='midnight')
-        fmt = logging.Formatter(fmt=self.logger_format)
-        hdlr.setFormatter(fmt)
-        self.logger.addHandler(hdlr)
-        self.logger.setLevel(logging.INFO)
+        logger.info('Session closed')
 
     def init_db_connection(self, dbname, dbhost):
-        self.logger.info('Connecting to db %s...' % dbname)
+        logger.info('Connecting to db %s...' % dbname)
         dburl = 'postgresql+psycopg2://%s/%s' % (dbhost, dbname)
         self.engine = create_engine(dburl)
         Base.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        self.logger.info('Connected to db %s' % dbname)
+        logger.info('Connected to db %s' % dbname)
 
     def parse_data(self, filename):
-        self.logger.info('Parsing datafile %s...' % filename)
+        logger.info('Parsing datafile %s...' % filename)
         start = datetime.now()
 
         f = open(filename, 'r')
@@ -133,16 +130,16 @@ class ChainParser():
         self.num_contracts = 2*len(self.con_data)/self.num_headers
 
         end = datetime.now()
-        self.logger.info('Parsed datafile %s. Took %0.3f seconds.' 
+        logger.info('Parsed datafile %s. Took %0.3f seconds.' 
                          % (filename, self.seconds_elapsed(start, end)))
 
     def add_ticker_to_db(self):
-        self.logger.info('Adding ticker %s' % self.ticker)
+        logger.info('Adding ticker %s' % self.ticker)
         self.session.add(Ticker(ticker=self.ticker))
         self.session.commit()
 
     def add_up_to_db(self):
-        self.logger.info('Adding the price for %s at %s'
+        logger.info('Adding the price for %s at %s'
                             % (self.ticker, 'T'.join([self.date, self.time])))
         start = datetime.now()
 
@@ -162,11 +159,11 @@ class ChainParser():
         self.session.commit()
 
         end = datetime.now()
-        self.logger.info('Adding price complete. Took %0.3f seconds'
+        logger.info('Adding price complete. Took %0.3f seconds'
                          % self.seconds_elapsed(start, end))
 
     def add_contracts_to_db(self):
-        self.logger.info('Adding prices for %i contracts...' 
+        logger.info('Adding prices for %i contracts...' 
                          % self.num_contracts) 
         start = datetime.now()
 
@@ -190,7 +187,7 @@ class ChainParser():
         self.session.commit()
 
         end = datetime.now()
-        self.logger.info('Adding contract prices complete. Took %0.3f seconds' 
+        logger.info('Adding contract prices complete. Took %0.3f seconds' 
                          % self.seconds_elapsed(start, end))
 
     def add_price_to_db(self, base_contract, call_put, header, data):
@@ -200,15 +197,15 @@ class ChainParser():
         missing = len([x for x in price.values() if x.strip() == ''])
         if missing == 0:
             price = self.get_cid(contract, price)
-            self.logger.debug('Got contract id %i' % price['id'])
+            logger.debug('Got contract id %i' % price['id'])
             sq = self.session.query(OptionPrice).get((price['id'],
                                                  price['date'], price['time']))
             if not sq:
                 self.session.add(OptionPrice(**price))
-                self.logger.debug('Added the price for contract %i'
+                logger.debug('Added the price for contract %i'
                                   % price['id'])
         else:
-            self.logger.warn('No data for %s%s%s%08i on %s' % (self.ticker, 
+            logger.warn('No data for %s%s%s%08i on %s' % (self.ticker, 
                              contract['expiry'].strftime('%y%m%d'), call_put,
                              float(contract['strike'])*1000, self.date))
 
