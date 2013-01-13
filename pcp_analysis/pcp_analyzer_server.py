@@ -23,6 +23,8 @@ SENDTRADE = 'Sent %0.3f %s REVERSAL for ticker %s, expiry %s, strike %s'
 parlogger = logging.getLogger(poc.__name__)
 analogger = logging.getLogger('sqlalchemy.dialects.postgresql')
 
+analogger.setLevel(logging.INFO)
+
 def report_ls(result, ticker, call_id, put_id, ls_cash_out):
     header = HFMT.format(date='DATE', time='TIME', ticker='TICKER', 
                         call_id='CALL ID', put_id='PUT ID', call='CALL ASK',
