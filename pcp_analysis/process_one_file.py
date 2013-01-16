@@ -28,5 +28,6 @@ sleep_time = (4.02*conprocs
             + .3*size_mb*conprocs
             - 1.9)
 
+if sleep_time < 0: sleep_time = 0
 print 'Processing %s and sleeping for %0.2f' % (fname, sleep_time)
 sleep(sleep_time)
