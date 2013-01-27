@@ -93,7 +93,7 @@ class GNUPlotButterfly(GNUPlotCombo):
 class GNUPlotSpread(GNUPlotCombo):
     def __init__(self, option1, option2):
         self.option1 = option1
-        self.option1 = option2
+        self.option2 = option2
 
     def plot_legs(self, color1='blue', color2='red'):
         self.option1.plot_option_payoff(color1)
