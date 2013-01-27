@@ -9,6 +9,14 @@ class ButterflyHistogram():
 
     def __init__(self, strike_intervals):
         self.intervals = strike_intervals
+        self.prices = [0 for x in self.intervals]
+        self.probs = [0 for x in self.intervals]
+
+    def update_price(self, interval, price):
+        i = self.intervals.index(interval)
+        prices[i] = price
+        self.calculate_probabilities()
+        self.plot_histogram()
 
     def midpoint(self, interval):
         return (interval[1] - interval[0])/2.0
