@@ -15,8 +15,18 @@ class GNUPlotBase():
             print 'set terminal postscript eps enhanced size 5.5in, 4.25in'
             print 'set output "%s"' % fname
 
-    def gen_header(self):
+    def gen_ticks(self, xticklist, yticklist):
+        xticks = [str(x) for x in xticklist]
+        yticks = [str(x) for x in yticklist]
+        print '\n#Set ticks'
+        print 'unset xtics'
+        print 'unset ytics'
+        print 'set xtics (%s)' % ', '.join(xticks)
+        print 'set ytics (%s)' % ', '.join(yticks)
+
+    def gen_header(self, xlabel='Spot Price', ylabel='Payoff at Expiry'):
         print '\n#Chart Settings'
+        print 'set timestamp "%Y-%m-%dT%H:%M:%S"'
         print 'xmin = %0.3f' % self.xmin
         print 'xmax = %0.3f' % self.xmax
         print 'ymin = %0.3f' % self.ymin
@@ -27,20 +37,11 @@ class GNUPlotBase():
         print 'set key off'
         print 'set grid back lt 0 lc rgb "grey"'
 
-        print 'set xlabel "Spot Price"'
-        print 'set ylabel "Payoff at Expiry"'
+        print 'set xlabel "%s"' % xlabel
+        print 'set ylabel "%s"' % ylabel
 
         print 'set parametric'
         print 'set multiplot'
-
-    def gen_ticks(self, xticklist, yticklist):
-        xticks = [str(x) for x in xticklist]
-        yticks = [str(x) for x in yticklist]
-        print '\n#Set ticks'
-        print 'unset xtics'
-        print 'unset ytics'
-        print 'set xtics (%s)' % ', '.join(xticks)
-        print 'set ytics (%s)' % ', '.join(yticks)
 
 class GNUPlotOption(GNUPlotBase):
     def __init__(self, qty, right, strike):
