@@ -32,6 +32,11 @@ class ButterflyHistogram():
 
     def calculate_probabilities(self):
         self.sum_prices()
+        if self.sum_prices() == 0:
+            f = open(self.datafile, 'w')
+            f.write('0 0\n')
+            f.close()
+            return None
         f = open(self.datafile, 'w')
         self.probs[0] = 0.5*self.prices[0]/self.price_sum
         f.write(self.line % (self.mid(self.intervals[0]), self.probs[0]))
