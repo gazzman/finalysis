@@ -23,7 +23,8 @@ class ButterflyHistogram():
         self.yticks = [x/10.0 for x in range(1, 10)]
 
     def update_price(self, price, index):
-        self.prices[index] = price
+        if price > 0: self.prices[index] = price
+        else: self.prices[index] = 0
         self.calculate_probabilities()
 
     def sum_prices(self):
@@ -32,7 +33,7 @@ class ButterflyHistogram():
 
     def calculate_probabilities(self):
         self.sum_prices()
-        if self.sum_prices() == 0:
+        if self.price_sum == 0:
             f = open(self.datafile, 'w')
             f.write('0 0\n')
             f.close()
