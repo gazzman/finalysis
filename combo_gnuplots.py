@@ -7,6 +7,14 @@ class GNUPlotBase():
     ymin = -10
     ymax = 10
 
+    def set_output(self, fname=None):
+        print '\n#Plot Output'
+        print 'unset multiplot'
+        if not fname: print 'set terminal x11'
+        else:
+            print 'set terminal postscript eps enhanced size 5.5in, 4.25in'
+            print 'set output "%s"' % fname
+
     def gen_header(self):
         print '\n#Chart Settings'
         print 'xmin = %0.3f' % self.xmin
@@ -60,17 +68,17 @@ class GNUPlotOption(GNUPlotBase):
         print '\n'.join([heading, otm, itm])
 
 class GNUPlotCombo(GNUPlotBase):
-    def plot_combo_payoff(self, options):
+    def plot_combo_payoff(self, options, color):
         strikes = dict([(x.strike, None) for x in options]).keys()
         strikes += [0, self.xmax]
         strikes.sort()
         strike_intervals = zip(strikes[:-1], strikes[1:])
-        plotstring = 'plot [t=%0.3f:%0.3f] t, %s lc rgb "black"'
+        plotstring = 'plot [t=%0.3f:%0.3f] t, %s lc rgb "%s"' 
         for interval in strike_intervals:
             mid = (interval[1] + interval[0])/2
             payoff = ['0']
             payoff += [x.itm_payoff for x in options if x.is_itm_at(mid)]
-            print plotstring % (interval + ('+'.join(payoff),))
+            print plotstring % (interval + ('+'.join(payoff), color))
 
 class GNUPlotButterfly(GNUPlotCombo):
     def __init__(self, K1, K2, K3, rights='C'):
@@ -87,8 +95,8 @@ class GNUPlotButterfly(GNUPlotCombo):
         self.body.plot_option_payoff(color='red')
         self.rwing.plot_option_payoff(color='blue')
 
-    def plot_payoff(self):
-        self.plot_combo_payoff([self.lwing, self.body, self.rwing])
+    def plot_payoff(self, color='black'):
+        self.plot_combo_payoff([self.lwing, self.body, self.rwing], color)
 
 class GNUPlotSpread(GNUPlotCombo):
     def __init__(self, option1, option2):
@@ -99,5 +107,5 @@ class GNUPlotSpread(GNUPlotCombo):
         self.option1.plot_option_payoff(color1)
         self.option2.plot_option_payoff(color2)
 
-    def plot_payoff(self):
-        self.plot_combo_payoff([self.option1, self.option2])
+    def plot_payoff(self, color='black'):
+        self.plot_combo_payoff([self.option1, self.option2], color)
