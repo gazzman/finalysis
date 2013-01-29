@@ -5,6 +5,7 @@ class ButterflyHistogram():
     def __init__(self, strike_intervals):
         self.intervals = strike_intervals
         self.prices = [0 for x in self.intervals][:-1]
+        self.price_sum = 0
         self.probs = [1.0/len(self.intervals) for x in self.intervals]
         self.gpbase = GNUPlotBase()
         self.gpbase.xmin = strike_intervals[0][0]*.9
@@ -12,10 +13,6 @@ class ButterflyHistogram():
         self.gpbase.ymin = 0
         self.gpbase.ymax = 1
         self.datafile = 'butterhist.dat'
-        self.intervals = list()
-        self.prices = list()
-        self.probs = list()
-        self.price_sum = 0
         self.line = '%0.2f %0.3f\n'
         self.xticks = [x[0] for x in strike_intervals]
         self.xticks.append(strike_intervals[-1][-1])
