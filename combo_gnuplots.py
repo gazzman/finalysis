@@ -25,9 +25,11 @@ class GNUPlotBase():
         print 'set xtics (%s)' % ', '.join(xticks)
         print 'set ytics (%s)' % ', '.join(yticks)
 
-    def gen_header(self, xlabel='Spot Price', ylabel='Payoff at Expiry'):
+    def gen_header(self, xlabel='Spot Price', ylabel='Payoff at Expiry',
+                   timestamp=None):
         print '\n#Chart Settings'
-        print 'set timestamp "%Y-%m-%dT%H:%M:%S"'
+        if not timestamp: print 'set timestamp "%Y-%m-%dT%H:%M:%S"'
+        else: print 'set timestamp "%s"' % timestamp
         print 'xmin = %0.3f' % self.xmin
         print 'xmax = %0.3f' % self.xmax
         print 'ymin = %0.3f' % self.ymin
