@@ -18,54 +18,78 @@ def cleanup(signal, frame):
 	sys.exit(0)
 
 class ButterClient(Client):
-    butterfly_tickers = []
-    symbol = ''
-    ask_histogram = None
-    bid_histogram = None
-    
     def tickPrice(self, tickerId, field, price, canAutoExecute):
         msg = EWrapperMsgGenerator.tickPrice(tickerId, field, price, 
                                              canAutoExecute)
-        if tickerId in self.butterfly_tickers:
-            dt = datetime.now().isoformat()
-            index = self.butterfly_tickers.index(tickerId)
+        dt = datetime.now().isoformat()
+        try:
+            key, tickerIds = self.tickerId_to_symbolKey[tickerId]
+            bid_histogram = self.bid_histograms[key]
+            ask_histogram = self.ask_histograms[key]
+            symbol, expiry = key
+            index = tickerIds.index(tickerId)
             if field == 1:
-                self.bid_histogram.datafile = '%s_BID_%s.dat' % (self.symbol, dt)
-                self.bid_histogram.update_price(price, index)
-                self.bid_histogram.plot_histogram(fname='%s_BID_%s.jpg'\
-                                                       % (self.symbol, dt), dt)
+                bid_histogram.datafile = '%s_%s_BID_%s.dat'\
+                                                         % (symbol, expiry, dt)
+                bid_histogram.update_price(price, index)
+                bid_histogram.plot_histogram(fname='%s_%s_BID_%s.jpg'\
+                                          % (symbol, expiry, dt), timestamp=dt)
             elif field == 2:
-                self.ask_histogram.datafile = '%s_ASK_%s.dat' % (self.symbol, dt)
-                self.ask_histogram.update_price(price, index)
-                self.ask_histogram.plot_histogram(fname='%s_ASK_%s.jpg'\
-                                                       % (self.symbol, dt), dt)
+                ask_histogram.datafile = '%s_%s_ASK_%s.dat'\
+                                                         % (symbol, expiry, dt)
+                ask_histogram.update_price(price, index)
+                ask_histogram.plot_histogram(fname='%s_%s_ASK_%s.jpg'\
+                                          % (symbol, expiry, dt), timestamp=dt)
+        except KeyError:
+            pass
         self.datahandler(tickerId, msg)
 
 if __name__ == "__main__":
-    symbol = sys.argv[1]
-    expiry = sys.argv[2]
-    start = sys.argv[3]
-    end = sys.argv[4]
+    ''' format of the symbols_file is:
 
-    strikes = range(int(start), int(end)+1)
-    strike_intervals = zip(strikes[:-1], strikes[1:])
+        ticker_symbol expiry_date starting_strike ending_strike increment
+
+    '''
+    symbols_file = sys.argv[1]
 
     c = ButterClient()
     c.connect()
-    c.ask_histogram = ButterflyHistogram(strike_intervals)
-    c.bid_histogram = ButterflyHistogram(strike_intervals)
-    c.symbol = symbol.upper()
-    butterfly_strikes = zip(strikes[:-2], strikes[1:-1], strikes[2:])
-    butterfly_conkeys = [(Option(symbol, expiry, 'C', x[0]),
-                          Option(symbol, expiry, 'C', x[1]),
-                          Option(symbol, expiry, 'C', x[2]))
-                         for x in butterfly_strikes]
-    butterfly_conids = [(c.request_contract_details(x[0])[0].m_summary.m_conId,
-                         c.request_contract_details(x[1])[0].m_summary.m_conId,
-                         c.request_contract_details(x[2])[0].m_summary.m_conId)
-                        for x in butterfly_conkeys]
-    butterflies = [Butterfly(*x) for x in butterfly_conids]
-    c.butterfly_tickers = [c.request_mkt_data(x.contract, snapshot=False, 
-                            fname='%s.mkt' % x.conId) for x in butterflies]
+    c.ask_histograms = dict()
+    c.bid_histograms = dict()
+    c.tickerId_to_symbolKey = dict()
+
+    f = open(symbols_file, 'r')
+    for line in f:
+        symbol, expiry, start, end, increment = line.split()
+        key = (symbol, expiry)
+        if float(increment) % 1 == 0:
+            start = int(start)
+            end = int(end)
+            increment = int(increment)
+            strikes = range(start, end+increment, increment)
+        elif float(increment) == 0.5:
+            start = int(float(start)*10.0)
+            end = int(float(end)*10.0)
+            increment = 5
+            strikes = range(start, end+increment, increment)
+            strikes = [x/10.0 for x in strikes]
+        strike_intervals = zip(strikes[:-1], strikes[1:])
+
+        c.ask_histograms[key] = ButterflyHistogram(strike_intervals)
+        c.bid_histograms[key] = ButterflyHistogram(strike_intervals)
+        butterfly_strikes = zip(strikes[:-2], strikes[1:-1], strikes[2:])
+        butterfly_conkeys = [(Option(symbol, expiry, 'C', x[0]),
+                              Option(symbol, expiry, 'C', x[1]),
+                              Option(symbol, expiry, 'C', x[2]))
+                             for x in butterfly_strikes]
+        butterfly_conids = [(c.request_contract_details(x[0])[0].m_summary.m_conId,
+                             c.request_contract_details(x[1])[0].m_summary.m_conId,
+                             c.request_contract_details(x[2])[0].m_summary.m_conId)
+                            for x in butterfly_conkeys]
+        butterflies = [Butterfly(*x) for x in butterfly_conids]
+        tickerIds = [c.request_mkt_data(x.contract, snapshot=False, 
+                                fname='%s.mkt' % x.conId) for x in butterflies]
+        for tickerId in tickerIds:
+            c.tickerId_to_symbolKey[tickerId] = (key, tickerIds)
 
     signal.signal(signal.SIGINT, cleanup)
