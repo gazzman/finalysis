@@ -18,16 +18,19 @@ def cleanup(signal, frame):
 	sys.exit(0)
 
 class ButterClient(Client):
+    ask_histograms = dict()
+    bid_histograms = dict()
+    tickerId_to_symbolKey = dict()
+
     def tickPrice(self, tickerId, field, price, canAutoExecute):
         msg = EWrapperMsgGenerator.tickPrice(tickerId, field, price, 
                                              canAutoExecute)
         dt = datetime.now().isoformat()
         try:
-            key, tickerIds = self.tickerId_to_symbolKey[tickerId]
+            key, index = self.tickerId_to_symbolKey[tickerId]
             bid_histogram = self.bid_histograms[key]
             ask_histogram = self.ask_histograms[key]
             symbol, expiry = key
-            index = tickerIds.index(tickerId)
             if field == 1:
                 bid_histogram.datafile = '%s_%s_BID_%s.dat'\
                                                          % (symbol, expiry, dt)
@@ -54,14 +57,12 @@ if __name__ == "__main__":
 
     c = ButterClient()
     c.connect()
-    c.ask_histograms = dict()
-    c.bid_histograms = dict()
-    c.tickerId_to_symbolKey = dict()
 
     f = open(symbols_file, 'r')
     for line in f:
         symbol, expiry, start, end, increment = line.split()
         key = (symbol, expiry)
+
         if float(increment) % 1 == 0:
             start = int(start)
             end = int(end)
@@ -81,15 +82,19 @@ if __name__ == "__main__":
         butterfly_conkeys = [(Option(symbol, expiry, 'C', x[0]),
                               Option(symbol, expiry, 'C', x[1]),
                               Option(symbol, expiry, 'C', x[2]))
-                             for x in butterfly_strikes]
-        butterfly_conids = [(c.request_contract_details(x[0])[0].m_summary.m_conId,
-                             c.request_contract_details(x[1])[0].m_summary.m_conId,
-                             c.request_contract_details(x[2])[0].m_summary.m_conId)
-                            for x in butterfly_conkeys]
+                                                    for x in butterfly_strikes]
+        butterfly_conids = [(c.request_contract_details(x[0])[0]\
+                              .m_summary.m_conId,
+                             c.request_contract_details(x[1])[0]\
+                              .m_summary.m_conId,
+                             c.request_contract_details(x[2])[0]\
+                              .m_summary.m_conId)
+                                                    for x in butterfly_conkeys]
         butterflies = [Butterfly(*x) for x in butterfly_conids]
         tickerIds = [c.request_mkt_data(x.contract, snapshot=False, 
                                 fname='%s.mkt' % x.conId) for x in butterflies]
         for tickerId in tickerIds:
-            c.tickerId_to_symbolKey[tickerId] = (key, tickerIds)
+            index = tickerIds.index(tickerId)
+            c.tickerId_to_symbolKey[tickerId] = (key, index)
 
     signal.signal(signal.SIGINT, cleanup)
