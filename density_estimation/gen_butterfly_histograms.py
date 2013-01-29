@@ -30,19 +30,17 @@ class ButterClient(Client):
             key, index = self.tickerId_to_symbolKey[tickerId]
             bid_histogram = self.bid_histograms[key]
             ask_histogram = self.ask_histograms[key]
-            symbol, expiry = key
+            symExp = '_'.join(key)
             if field == 1:
-                bid_histogram.datafile = '%s_%s_BID_%s.dat'\
-                                                         % (symbol, expiry, dt)
+                bid_histogram.datafile = '%s/BID_%s.dat' % (symExp, dt)
                 bid_histogram.update_price(price, index)
-                bid_histogram.plot_histogram(fname='%s_%s_BID_%s.jpg'\
-                                          % (symbol, expiry, dt), timestamp=dt)
+                bid_histogram.plot_histogram(fname='%s/BID_%s.jpg'\
+                                                  % (symExp, dt), timestamp=dt)
             elif field == 2:
-                ask_histogram.datafile = '%s_%s_ASK_%s.dat'\
-                                                         % (symbol, expiry, dt)
+                ask_histogram.datafile = '%s/ASK_%s.dat' % (symExp, dt)
                 ask_histogram.update_price(price, index)
-                ask_histogram.plot_histogram(fname='%s_%s_ASK_%s.jpg'\
-                                          % (symbol, expiry, dt), timestamp=dt)
+                ask_histogram.plot_histogram(fname='%s/ASK_%s.jpg'\
+                                                  % (symExp, dt), timestamp=dt)
         except KeyError:
             pass
         self.datahandler(tickerId, msg)
@@ -62,6 +60,7 @@ if __name__ == "__main__":
     for line in f:
         symbol, expiry, start, end, increment = line.split()
         key = (symbol, expiry)
+        if not os.path.exists('_'.join(key)): os.makedirs('_'.join(key))
 
         if float(increment) % 1 == 0:
             start = int(start)
