@@ -12,7 +12,8 @@ class GNUPlotBase():
         print 'unset multiplot'
         if not fname: print 'set terminal x11'
         else:
-            print 'set terminal postscript eps enhanced size 5.5in, 4.25in'
+            print 'set terminal jpeg'
+#            print 'set terminal postscript eps enhanced size 5.5in, 4.25in'
             print 'set output "%s"' % fname
 
     def gen_ticks(self, xticklist, yticklist):
