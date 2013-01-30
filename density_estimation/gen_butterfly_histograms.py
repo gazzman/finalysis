@@ -47,7 +47,7 @@ class ButterClient(Client):
             elif field == 4:
                 last_histogram.datafile = '%s/LAST_%s.dat' % (symExp, dt)
                 last_histogram.update_price(price, index)
-                last_histogram.plot_histogram(fname='%s/LAST%s.jpg'\
+                last_histogram.plot_histogram(fname='%s/LAST_%s.jpg'\
                                                   % (symExp, dt), timestamp=dt)
         except KeyError:
             pass
