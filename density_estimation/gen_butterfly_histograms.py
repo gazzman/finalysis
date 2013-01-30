@@ -21,6 +21,7 @@ def cleanup(signal, frame):
 class ButterClient(Client):
     ask_histograms = dict()
     bid_histograms = dict()
+    last_histograms = dict()
     tickerId_to_symbolKey = dict()
 
     def tickPrice(self, tickerId, field, price, canAutoExecute):
@@ -31,6 +32,7 @@ class ButterClient(Client):
             key, index = self.tickerId_to_symbolKey[tickerId]
             bid_histogram = self.bid_histograms[key]
             ask_histogram = self.ask_histograms[key]
+            last_histogram = self.last_histograms[key]
             symExp = '_'.join(key)
             if field == 1:
                 bid_histogram.datafile = '%s/BID_%s.dat' % (symExp, dt)
@@ -41,6 +43,11 @@ class ButterClient(Client):
                 ask_histogram.datafile = '%s/ASK_%s.dat' % (symExp, dt)
                 ask_histogram.update_price(price, index)
                 ask_histogram.plot_histogram(fname='%s/ASK_%s.jpg'\
+                                                  % (symExp, dt), timestamp=dt)
+            elif field == 4:
+                last_histogram.datafile = '%s/LAST_%s.dat' % (symExp, dt)
+                last_histogram.update_price(price, index)
+                last_histogram.plot_histogram(fname='%s/LAST%s.jpg'\
                                                   % (symExp, dt), timestamp=dt)
         except KeyError:
             pass
@@ -78,6 +85,7 @@ if __name__ == "__main__":
 
         c.ask_histograms[key] = ButterflyHistogram(strike_intervals)
         c.bid_histograms[key] = ButterflyHistogram(strike_intervals)
+        c.last_histograms[key] = ButterflyHistogram(strike_intervals)
         butterfly_strikes = zip(strikes[:-2], strikes[1:-1], strikes[2:])
         butterfly_conkeys = [(Option(symbol, expiry, 'C', x[0]),
                               Option(symbol, expiry, 'C', x[1]),
