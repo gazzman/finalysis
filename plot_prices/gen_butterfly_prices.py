@@ -33,22 +33,22 @@ class ButterPriceClient(Client):
             bid_price = self.bid_prices[key]
             ask_price = self.ask_prices[key]
             last_price = self.last_prices[key]
-            symExp = '_'.join(key)
+            symExpRight = '_'.join(key)
             if field == 1:
-                bid_price.datafile = '%s/BID_%s.dat' % (symExp, dt)
+                bid_price.datafile = '%s/BID_%s.dat' % (symExpRight, dt)
                 bid_price.update_price(price, index)
                 bid_price.plot_prices(fname='%s/BID_%s.jpg'\
-                                                  % (symExp, dt), timestamp=dt)
+                                             % (symExpRight, dt), timestamp=dt)
             elif field == 2:
-                ask_price.datafile = '%s/ASK_%s.dat' % (symExp, dt)
+                ask_price.datafile = '%s/ASK_%s.dat' % (symExpRight, dt)
                 ask_price.update_price(price, index)
                 ask_price.plot_prices(fname='%s/ASK_%s.jpg'\
-                                                  % (symExp, dt), timestamp=dt)
+                                             % (symExpRight, dt), timestamp=dt)
             elif field == 4:
-                last_price.datafile = '%s/LAST_%s.dat' % (symExp, dt)
+                last_price.datafile = '%s/LAST_%s.dat' % (symExpRight, dt)
                 last_price.update_price(price, index)
                 last_price.plot_prices(fname='%s/LAST_%s.jpg'\
-                                                  % (symExp, dt), timestamp=dt)
+                                             % (symExpRight, dt), timestamp=dt)
         except KeyError:
             pass
         self.datahandler(tickerId, msg)
@@ -56,7 +56,7 @@ class ButterPriceClient(Client):
 if __name__ == "__main__":
     ''' format of the symbols_file is:
 
-        ticker_symbol expiry_date starting_strike ending_strike increment
+        ticker_symbol expiry_date starting_strike ending_strike right increment
 
     '''
     symbols_file = sys.argv[1]
@@ -66,8 +66,8 @@ if __name__ == "__main__":
 
     f = open(symbols_file, 'r')
     for line in f:
-        symbol, expiry, start, end, increment = line.split()
-        key = (symbol, expiry)
+        symbol, expiry, start, end, right, increment = line.split()
+        key = (symbol, expiry, right)
         if not os.path.exists('_'.join(key)): os.makedirs('_'.join(key))
 
         if float(increment) % 1 == 0:
@@ -87,9 +87,9 @@ if __name__ == "__main__":
         c.bid_prices[key] = ButterflyPrices(strike_intervals)
         c.last_prices[key] = ButterflyPrices(strike_intervals)
         butterfly_strikes = zip(strikes[:-2], strikes[1:-1], strikes[2:])
-        butterfly_conkeys = [(Option(symbol, expiry, 'C', x[0]),
-                              Option(symbol, expiry, 'C', x[1]),
-                              Option(symbol, expiry, 'C', x[2]))
+        butterfly_conkeys = [(Option(symbol, expiry, right, x[0]),
+                              Option(symbol, expiry, right, x[1]),
+                              Option(symbol, expiry, right, x[2]))
                                                     for x in butterfly_strikes]
         butterfly_conids = [(c.request_contract_details(x[0])[0]\
                               .m_summary.m_conId,
