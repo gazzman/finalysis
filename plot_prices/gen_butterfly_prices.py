@@ -37,21 +37,18 @@ class ButterPriceClient(Client):
             if field == 1:
                 bid_price.datafile = '%s/BID_%s.dat' % (symExpRight, dt)
                 bid_price.update_price(price, index)
-                command = bid_price.plot_prices(fname='%s/BID_%s.jpg'\
+                print bid_price.plot_prices(fname='%s/BID_%s.jpg'\
                                              % (symExpRight, dt), timestamp=dt)
-                print '\n'.join(command)
             elif field == 2:
                 ask_price.datafile = '%s/ASK_%s.dat' % (symExpRight, dt)
                 ask_price.update_price(price, index)
-                command = ask_price.plot_prices(fname='%s/ASK_%s.jpg'\
+                print ask_price.plot_prices(fname='%s/ASK_%s.jpg'\
                                              % (symExpRight, dt), timestamp=dt)
-                print '\n'.join(command)
             elif field == 4:
                 last_price.datafile = '%s/LAST_%s.dat' % (symExpRight, dt)
                 last_price.update_price(price, index)
-                command = last_price.plot_prices(fname='%s/LAST_%s.jpg'\
+                print last_price.plot_prices(fname='%s/LAST_%s.jpg'\
                                              % (symExpRight, dt), timestamp=dt)
-                print '\n'.join(command)
         except KeyError:
             pass
         self.datahandler(tickerId, msg)

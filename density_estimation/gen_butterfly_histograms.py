@@ -37,21 +37,18 @@ class ButterClient(Client):
             if field == 1:
                 bid_histogram.datafile = '%s/BID_%s.dat' % (symExp, dt)
                 bid_histogram.update_price(price, index)
-                command = bid_histogram.plot_histogram(fname='%s/BID_%s.jpg'\
+                print bid_histogram.plot_histogram(fname='%s/BID_%s.jpg'\
                                                   % (symExp, dt), timestamp=dt)
-                print '\n'.join(command)
             elif field == 2:
                 ask_histogram.datafile = '%s/ASK_%s.dat' % (symExp, dt)
                 ask_histogram.update_price(price, index)
-                command = ask_histogram.plot_histogram(fname='%s/ASK_%s.jpg'\
+                print ask_histogram.plot_histogram(fname='%s/ASK_%s.jpg'\
                                                   % (symExp, dt), timestamp=dt)
-                print '\n'.join(command)
             elif field == 4:
                 last_histogram.datafile = '%s/LAST_%s.dat' % (symExp, dt)
                 last_histogram.update_price(price, index)
-                command = last_histogram.plot_histogram(fname='%s/LAST_%s.jpg'\
+                print last_histogram.plot_histogram(fname='%s/LAST_%s.jpg'\
                                                   % (symExp, dt), timestamp=dt)
-                print '\n'.join(command)
         except KeyError:
             pass
         self.datahandler(tickerId, msg)

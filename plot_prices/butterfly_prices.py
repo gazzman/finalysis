@@ -36,4 +36,4 @@ class ButterflyPrices():
                                ylabel='Butterfly Price',
                                timestamp=timestamp))
         commands.append('plot "%s" with boxes' % self.datafile)
-        print '\n'.join(commands)
+        return '\n'.join(commands)
