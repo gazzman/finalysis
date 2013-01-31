@@ -23,9 +23,9 @@ class ButterflyPrices():
         if price > 0: self.prices[index] = price
         else: self.prices[index] = 0
         f = open(self.datafile, 'w')
+        f.write('#Underlying %0.3f\n' % self.prices[-1])
         for i in range(0, len(self.prices)-1):
             f.write(self.line % (self.intervals[i][-1], self.prices[i]))
-        f.write('Underlying %0.3f\n' % self.prices[-1])
         f.close()
         
 
