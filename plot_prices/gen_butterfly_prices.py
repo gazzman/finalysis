@@ -61,7 +61,7 @@ if __name__ == "__main__":
     '''
     symbols_file = sys.argv[1]
 
-    c = ButterClient()
+    c = ButterPriceClient()
     c.connect()
 
     f = open(symbols_file, 'r')
