@@ -14,7 +14,8 @@ class ButterflyHistogram():
         self.gpbase.ymax = 1
         self.datafile = 'butterhist.dat'
         self.line = '%0.2f %0.3f\n'
-        self.xticks = [x[0] for x in strike_intervals]
+        self.xticks = [x[0] for x in strike_intervals 
+                                         if strike_intervals.index(x) % 2 == 0]
         self.xticks.append(strike_intervals[-1][-1])
         self.yticks = [x/10.0 for x in range(1, 10)]
 
