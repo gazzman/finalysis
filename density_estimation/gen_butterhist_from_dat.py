@@ -27,7 +27,9 @@ if __name__ == "__main__":
     gpb.xmax = end*1.1
     gpb.ymin = 0
     gpb.ymax = 1
-    gpb.set_output(fname=jpgfname)
-    gpb.gen_header(ylabel='Probability', timestamp=dt)
-    gpb.gen_ticks(xticks, yticks)
-    print 'plot "%s" with boxes' % datfname
+    commands = []
+    commands.append(gpb.set_output(fname=jpgfname))
+    commands.append(gpb.gen_header(ylabel='Probability', timestamp=dt))
+    commands.append(gpb.gen_ticks(xticks, yticks))
+    commands.append('plot "%s" with boxes' % datfname)
+    print '\n'.join(commands)

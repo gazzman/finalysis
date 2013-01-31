@@ -29,9 +29,11 @@ class ButterflyPrices():
         
 
     def plot_prices(self, fname=None, timestamp=None):
-        self.gpbase.set_output(fname=fname)
-        self.gpbase.gen_ticks(self.xticks, self.yticks)
-        self.gpbase.gen_header(xlabel='Spot Price at Expiry',
+        commands = []
+        commands.append(self.gpbase.set_output(fname=fname))
+        commands.append(self.gpbase.gen_ticks(self.xticks, self.yticks))
+        commands.append(self.gpbase.gen_header(xlabel='Spot Price at Expiry',
                                ylabel='Butterfly Price',
-                               timestamp=timestamp)
-        print 'plot "%s" with boxes' % self.datafile
+                               timestamp=timestamp))
+        commands.append('plot "%s" with boxes' % self.datafile)
+        print '\n'.join(commands)

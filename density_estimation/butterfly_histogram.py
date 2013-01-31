@@ -49,7 +49,10 @@ class ButterflyHistogram():
         return (interval[1] + interval[0])/2.0
 
     def plot_histogram(self, fname=None, timestamp=None):
-        self.gpbase.set_output(fname=fname)
-        self.gpbase.gen_ticks(self.xticks, self.yticks)
-        self.gpbase.gen_header(ylabel='Probability', timestamp=timestamp)
-        print 'plot "%s" with boxes' % self.datafile
+        commands = []
+        commands.append(self.gpbase.set_output(fname=fname))
+        commands.append(self.gpbase.gen_ticks(self.xticks, self.yticks))
+        commands.append(self.gpbase.gen_header(ylabel='Probability',
+                        timestamp=timestamp))
+        commands.append('plot "%s" with boxes' % self.datafile)
+        return '\n'.join(commands)

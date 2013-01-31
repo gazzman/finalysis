@@ -27,9 +27,11 @@ if __name__ == "__main__":
     gpb.ymin = 0
     gpb.ymax = xticks[1] - xticks[0]
     yticks = [float(gpb.ymax)/5.0*x for x in range(0, 6)]
-    gpb.set_output(fname=jpgfname)
-    gpb.gpbase.gen_header(xlabel='Spot Price at Expiry',
-                          ylabel='Butterfly Price',
-                          timestamp=timestamp)
-    gpb.gen_ticks(xticks, yticks)
-    print 'plot "%s" with boxes' % datfname
+    commands = []
+    commands.append(gpb.set_output(fname=jpgfname))
+    commands.append(gpb.gpbase.gen_header(xlabel='Spot Price at Expiry',
+                                          ylabel='Butterfly Price',
+                                          timestamp=timestamp))
+    commands.append(gpb.gen_ticks(xticks, yticks))
+    commands.append('plot "%s" with boxes' % datfname)
+    print '\n'.join(commands)
