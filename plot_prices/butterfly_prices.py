@@ -4,11 +4,11 @@ from finalysis.combo_gnuplots import GNUPlotBase
 class ButterflyPrices():
     def __init__(self, strike_intervals):
         max_payoff = 2*max([x[1] - x[0] for x in strike_intervals])
-        self.intervals = strike_intervals
+        self.intervals = [x for x in strike_intervals]
         self.prices = [0 for x in self.intervals]
         self.gpbase = GNUPlotBase()
         self.gpbase.xmin = strike_intervals[0][0]*.9
-        self.gpbase.xmax = strike_intervals[-1][-1]*1.1
+        self.gpbase.xmax = strike_intervals[-2][-1]*1.1
         self.gpbase.ymin = 0
         self.gpbase.ymax = max_payoff
         self.datafile = 'butterprices.dat'
