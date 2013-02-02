@@ -19,9 +19,7 @@ def cleanup(signal, frame):
 	sys.exit(0)
 
 class ButterPriceClient(Client):
-    ask_prices = dict()
-    bid_prices = dict()
-    last_prices = dict()
+    prices = dict()
     tickerId_to_symbolKey = dict()
 
     def tickPrice(self, tickerId, field, price, canAutoExecute):
@@ -30,24 +28,13 @@ class ButterPriceClient(Client):
         dt = datetime.now().isoformat()
         try:
             key, index = self.tickerId_to_symbolKey[tickerId]
-            bid_price = self.bid_prices[key]
-            ask_price = self.ask_prices[key]
-            last_price = self.last_prices[key]
+            prices = self.prices[key]
             symExpRight = '_'.join(key)
-            if field == 1:
-                bid_price.datafile = '%s/BID_%s.dat' % (symExpRight, dt)
-                bid_price.update_price(price, index)
-                print bid_price.plot_prices(fname='%s/BID_%s.jpg'\
-                                             % (symExpRight, dt), timestamp=dt)
-            elif field == 2:
-                ask_price.datafile = '%s/ASK_%s.dat' % (symExpRight, dt)
-                ask_price.update_price(price, index)
-                print ask_price.plot_prices(fname='%s/ASK_%s.jpg'\
-                                             % (symExpRight, dt), timestamp=dt)
-            elif field == 4:
-                last_price.datafile = '%s/LAST_%s.dat' % (symExpRight, dt)
-                last_price.update_price(price, index)
-                print last_price.plot_prices(fname='%s/LAST_%s.jpg'\
+            if field in [1, 2]:
+                prices.ofile = '%s/butterflies_%s.dat' % (symExpRight, dt)
+                prices.ufile = '%s/underlying_%s.dat' % (symExpRight, dt)
+                prices.update_price(price, index, field)
+                prices.plot_prices(fname='%s/%s.jpg'\
                                              % (symExpRight, dt), timestamp=dt)
         except KeyError:
             pass
@@ -83,9 +70,7 @@ if __name__ == "__main__":
             strikes = [x/10.0 for x in strikes]
         strike_intervals = zip(strikes[:-1], strikes[1:])
 
-        c.ask_prices[key] = ButterflyPrices(strike_intervals)
-        c.bid_prices[key] = ButterflyPrices(strike_intervals)
-        c.last_prices[key] = ButterflyPrices(strike_intervals)
+        c.prices[key] = ButterflyPrices(strike_intervals)
         butterfly_strikes = zip(strikes[:-2], strikes[1:-1], strikes[2:])
         butterfly_conkeys = [(Option(symbol, expiry, right, x[0]),
                               Option(symbol, expiry, right, x[1]),
