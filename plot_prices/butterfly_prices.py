@@ -1,4 +1,6 @@
 #!/usr/bin/python
+from Gnuplot import Gnuplot
+
 from finalysis.combo_gnuplots import GNUPlotBase
 
 class ButterflyPrices():
@@ -32,6 +34,7 @@ class ButterflyPrices():
         self.xticks.append(strike_intervals[-1][-1])
         self.yticks = [max_payoff/5.0*x for x in range(-5, 6)]
         self.intervals[-1] = ('Spot',)
+        self.g = Gnuplot()
 
     def mid(self, interval):
         return 0.5*(interval[1] + interval[0])
@@ -59,4 +62,5 @@ class ButterflyPrices():
                                timestamp=timestamp))
         commands.append(self.plot % {'ofile': self.ofile, 'ufile': self.ufile})
         commands.append(self.plotkey)
+        self.g('\n'.join(commands))
         return '\n'.join(commands)
