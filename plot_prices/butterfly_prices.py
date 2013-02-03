@@ -5,7 +5,7 @@ from Gnuplot import Gnuplot
 
 from finalysis.combo_gnuplots import GNUPlotBase
 
-def gen_strike_intervals(start, stop, increment):
+def gen_strike_intervals(start, end, increment):
     if float(increment) % 1 == 0:
         start = int(start)
         end = int(end)
