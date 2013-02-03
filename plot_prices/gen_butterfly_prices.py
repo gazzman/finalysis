@@ -10,7 +10,8 @@ from com.ib.client import EWrapperMsgGenerator
 from ib.client import Client
 from ib.contractkeys import Option, Stock
 from ib.combo_orders import Butterfly
-from finalysis.plot_prices.butterfly_prices import ButterflyPrices
+from finalysis.plot_prices.butterfly_prices import (ButterflyPrices,
+                                                    gen_strike_intervals)
 
 LOGLEVEL = logging.DEBUG
 
@@ -57,19 +58,9 @@ if __name__ == "__main__":
         key = (symbol, expiry, right)
         if not os.path.exists('_'.join(key)): os.makedirs('_'.join(key))
 
-        if float(increment) % 1 == 0:
-            start = int(start)
-            end = int(end)
-            increment = int(increment)
-            strikes = range(start, end+increment, increment)
-        elif float(increment) == 0.5:
-            start = int(float(start)*10.0)
-            end = int(float(end)*10.0)
-            increment = 5
-            strikes = range(start, end+increment, increment)
-            strikes = [x/10.0 for x in strikes]
-        strike_intervals = zip(strikes[:-1], strikes[1:])
-
+        strike_intervals = gen_strike_intervals(start, end, increment)
+        if not strike_intervals: raise Exception('Strike interval error')
+        
         c.prices[key] = ButterflyPrices(strike_intervals)
         butterfly_strikes = zip(strikes[:-2], strikes[1:-1], strikes[2:])
         butterfly_conkeys = [(Option(symbol, expiry, right, x[0]),
