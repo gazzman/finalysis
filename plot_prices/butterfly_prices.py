@@ -1,7 +1,25 @@
 #!/usr/bin/python
+import sys
+
 from Gnuplot import Gnuplot
 
 from finalysis.combo_gnuplots import GNUPlotBase
+
+def gen_strike_intervals(start, stop, increment):
+    if float(increment) % 1 == 0:
+        start = int(start)
+        end = int(end)
+        increment = int(increment)
+        strikes = range(start, end+increment, increment)
+    elif float(increment) == 0.5:
+        start = int(float(start)*10.0)
+        end = int(float(end)*10.0)
+        increment = 5
+        strikes = range(start, end+increment, increment)
+        strikes = [x/10.0 for x in strikes]
+    else: return None
+    strike_intervals = zip(strikes[:-1], strikes[1:])
+    return strike_intervals
 
 class ButterflyPrices():
     price_codes = [1, 2]
@@ -64,3 +82,20 @@ class ButterflyPrices():
         commands.append(self.plotkey)
         self.g('\n'.join(commands))
         return '\n'.join(commands)
+
+if __name__ == '__main__':
+    mktdatafname = sys.argv[1]
+    start, end, increment = mktdatafname.split('.')[0].split('_')
+    strike_intervals = gen_strike_intervals(start, end, increment)
+    bp = ButterflyPrices(strike_intervals)
+    with open(mkdatafname) as f:
+        for line in f:
+            index, dt, tickerId, data = line.split()[:4]
+            field, price = data.split('=')
+            if field == 'bidPrice': field = 1
+            elif field == 'askPrice': field = 2
+            if type(field) == int:
+                bp.ofile = 'butterflies_%s.dat' % dt
+                bp.ufile = 'underlying_%s.dat' % dt
+                bp.update_price(float(price), int(index), field)
+                bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
