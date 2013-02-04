@@ -87,9 +87,10 @@ class ButterflyPrices():
                                timestamp=timestamp))
         commands.append(self.plot % {'ofile': self.ofile, 'ufile': self.ufile})
         commands.append(self.plotkey)
-        try: self.g('\n'.join(commands))
+        pcmds = '\n'.join(commands)
+        try: self.g(pcmds)
         except AttributeError: pass
-        return '\n'.join(commands)
+        return pcmds
 
 if __name__ == '__main__':
     ''' 
