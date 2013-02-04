@@ -103,15 +103,16 @@ if __name__ == '__main__':
     start, end, increment = args.mktdatafname.split('.mkt')[0].split('_')
     strike_intervals = gen_strike_intervals(start, end, increment)
     bp = ButterflyPrices(strike_intervals)
-    with open(args.mktdatafname) as f:
-        for line in f:
-            index, dt, tickerId, data = line.split()[:4]
-            field, price = data.split('=')
-            if field == 'bidPrice': field = 1
-            elif field == 'askPrice': field = 2
-            if type(field) == int:
-                bp.ofile = 'butterflies_%s.dat' % dt
-                bp.ufile = 'underlying_%s.dat' % dt
-                bp.update_price(float(price), int(index), field)
-                if args.display: bp.plot_prices(fname=None, timestamp=dt)
-                else: bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
+    f = open(args.mktdatafname, 'r')
+    for line in f:
+        index, dt, tickerId, data = line.split()[:4]
+        field, price = data.split('=')
+        if field == 'bidPrice': field = 1
+        elif field == 'askPrice': field = 2
+        if type(field) == int:
+            bp.ofile = 'butterflies_%s.dat' % dt
+            bp.ufile = 'underlying_%s.dat' % dt
+            bp.update_price(float(price), int(index), field)
+            if args.display: bp.plot_prices(fname=None, timestamp=dt)
+            else: bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
+    f.close()
