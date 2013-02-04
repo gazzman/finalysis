@@ -1,9 +1,13 @@
 #!/usr/bin/python
 from decimal import Decimal
-import argparse
+try: import argparse
+except ImportError: import org.python.core.ArgParser as argparse
 import sys
 
-from Gnuplot import Gnuplot
+try: from Gnuplot import Gnuplot
+except ImportError:
+    msg = 'Continuing without Gnuplot.py. Sending commands to stdout'
+    print >> sys.stderr, msg
 
 from finalysis.combo_gnuplots import GNUPlotBase
 
@@ -54,7 +58,8 @@ class ButterflyPrices():
         self.xticks.append(strike_intervals[-1][-1])
         self.yticks = [max_payoff/5.0*x for x in range(-5, 6)]
         self.intervals[-1] = ('Spot',)
-        self.g = Gnuplot()
+        try: self.g = Gnuplot()
+        except NameError: pass
 
     def mid(self, interval):
         return 0.5*(interval[1] + interval[0])
@@ -82,7 +87,8 @@ class ButterflyPrices():
                                timestamp=timestamp))
         commands.append(self.plot % {'ofile': self.ofile, 'ufile': self.ufile})
         commands.append(self.plotkey)
-        self.g('\n'.join(commands))
+        try: self.g('\n'.join(commands))
+        except NameError: pass
         return '\n'.join(commands)
 
 if __name__ == '__main__':
@@ -113,6 +119,7 @@ if __name__ == '__main__':
             bp.ofile = 'butterflies_%s.dat' % dt
             bp.ufile = 'underlying_%s.dat' % dt
             bp.update_price(float(price), int(index), field)
-            if args.display: bp.plot_prices(fname=None, timestamp=dt)
-            else: bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
+            if args.display: pcmd = bp.plot_prices(fname=None, timestamp=dt)
+            else: pcmd = bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
+            print >> sys.stdout, pcmd
     f.close()

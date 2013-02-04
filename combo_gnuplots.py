@@ -1,12 +1,6 @@
 #!/usr/bin/python
 import sys
 
-try:
-    from Gnuplot import Gnuplot
-except ImportError:
-    msg = 'Continuing without Gnuplot.py. Sending commands to stdout'
-    print >> sys.stderr, msg
-
 class GNUPlotBase():
     xmin = 0
     xmax = 100
@@ -129,6 +123,12 @@ class GNUPlotSpread(GNUPlotCombo):
         self.plot_combo_payoff([self.option1, self.option2], color)
 
 if __name__ == "__main__":
+    try:
+        from Gnuplot import Gnuplot
+    except ImportError:
+        msg = 'Continuing without Gnuplot.py. Sending commands to stdout'
+        print >> sys.stderr, msg
+
     f = open(sys.argv[1], 'r')
     options = []
     for line in f:
