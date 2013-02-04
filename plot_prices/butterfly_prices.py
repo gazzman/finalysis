@@ -38,9 +38,9 @@ class ButterflyPrices():
     plot +=   ', "%(ofile)s" using 1:4 with boxes lc 0' # boxplots of midpoint
     plot +=   ', "%(ufile)s" ps 1 pt 7 lc variable'     # underlying prices
     plotkey = 'unset parametric\nset key on\n'
-    plotkey += 'plot [][0:1] 2 lc 2 title "BID"' # BID key
-    plotkey +=            ', 2 lc 1 title "ASK"' # ASK key
-    plotkey +=            ', 2 lc 0 title "MID"' # MID key
+    plotkey += 'plot [xmin:xmax][ymin:ymax] ymax+1 lc 2 title "BID"' # BID key
+    plotkey +=                           ', ymax+1 lc 1 title "ASK"' # ASK key
+    plotkey +=                           ', ymax+1 lc 0 title "MID"' # MID key
 
     def __init__(self, strike_intervals):
         max_payoff = 2*max([x[1] - x[0] for x in strike_intervals])
