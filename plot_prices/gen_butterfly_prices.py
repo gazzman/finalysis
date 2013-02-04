@@ -35,7 +35,7 @@ class ButterPriceClient(Client):
                 prices.ofile = '%s/butterflies_%s.dat' % (symExpRight, dt)
                 prices.ufile = '%s/underlying_%s.dat' % (symExpRight, dt)
                 prices.update_price(price, index, field)
-                prices.plot_prices(fname='%s/%s.jpg'\
+                print >> sys.stdout, prices.plot_prices(fname='%s/%s.jpg'\
                                              % (symExpRight, dt), timestamp=dt)
         except KeyError:
             pass
