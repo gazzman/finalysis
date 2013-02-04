@@ -1,4 +1,6 @@
 #!/usr/bin/python
+from decimal import Decimal
+import argparse
 import sys
 
 from Gnuplot import Gnuplot
@@ -7,13 +9,13 @@ from finalysis.combo_gnuplots import GNUPlotBase
 
 def gen_strike_intervals(start, end, increment):
     if float(increment) % 1 == 0:
-        start = int(start)
-        end = int(end)
-        increment = int(increment)
+        start = Decimal(start)
+        end = Decimal(end)
+        increment = Decimal(increment)
         strikes = range(start, end+increment, increment)
     elif float(increment) == 0.5:
-        start = int(float(start)*10.0)
-        end = int(float(end)*10.0)
+        start = Decimal(float(start)*10.0)
+        end = Decimal(float(end)*10.0)
         increment = 5
         strikes = range(start, end+increment, increment)
         strikes = [x/10.0 for x in strikes]
@@ -30,7 +32,7 @@ class ButterflyPrices():
     plot = 'plot "%(ofile)s" using 1:2 with boxes lc 2' # boxplots of bids
     plot +=   ', "%(ofile)s" using 1:3 with boxes lc 1' # boxplots of asks
     plot +=   ', "%(ofile)s" using 1:4 with boxes lc 0' # boxplots of midpoint
-    plot +=   ', "%(ufile)s" ps 2 pt 7 lc variable'     # underlying prices
+    plot +=   ', "%(ufile)s" ps 1 pt 7 lc variable'     # underlying prices
     plotkey = 'unset parametric\nset key on\n'
     plotkey += 'plot [][0:1] 2 lc 2 title "BID"' # BID key
     plotkey +=            ', 2 lc 1 title "ASK"' # ASK key
@@ -75,7 +77,7 @@ class ButterflyPrices():
         commands = []
         commands.append(self.gpbase.set_output(fname=fname))
         commands.append(self.gpbase.gen_ticks(self.xticks, self.yticks))
-        commands.append(self.gpbase.gen_header(xlabel='Spot Price at Expiry',
+        commands.append(self.gpbase.gen_header(xlabel='Butterfly Body Strike',
                                ylabel='Butterfly Price',
                                timestamp=timestamp))
         commands.append(self.plot % {'ofile': self.ofile, 'ufile': self.ufile})
@@ -84,11 +86,24 @@ class ButterflyPrices():
         return '\n'.join(commands)
 
 if __name__ == '__main__':
-    mktdatafname = sys.argv[1]
-    start, end, increment = mktdatafname.split('.')[0].split('_')
+    ''' 
+        mktdatafname should look like
+            start_end_increment.mkt
+        where start is the first strike price, end is the last strike
+        price, and increment is the increment.
+
+        The file contents should be created by the 
+        ib.client.butterfly_positioner.bash script.
+    '''
+    p = argparse.ArgumentParser()
+    p.add_argument('mktdatafname', type=str)
+    p.add_argument('--display', action='store_true')
+    args = p.parse_args()
+
+    start, end, increment = args.mktdatafname.split('.mkt')[0].split('_')
     strike_intervals = gen_strike_intervals(start, end, increment)
     bp = ButterflyPrices(strike_intervals)
-    with open(mkdatafname) as f:
+    with open(args.mktdatafname) as f:
         for line in f:
             index, dt, tickerId, data = line.split()[:4]
             field, price = data.split('=')
@@ -98,4 +113,5 @@ if __name__ == '__main__':
                 bp.ofile = 'butterflies_%s.dat' % dt
                 bp.ufile = 'underlying_%s.dat' % dt
                 bp.update_price(float(price), int(index), field)
-                bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
+                if args.display: bp.plot_prices(fname=None, timestamp=dt)
+                else: bp.plot_prices(fname='%s.jpg' % dt, timestamp=dt)
