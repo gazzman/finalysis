@@ -13,7 +13,7 @@ class GNUPlotBase():
         commands.append('unset multiplot')
         if not fname: commands.append('set terminal x11')
         else:
-            commands.append('set terminal jpeg font cour 6 size 1024,768 enhanced')
+            commands.append('set terminal jpeg font cour 6 size 800,600 enhanced')
 #            commands.append('set terminal postscript eps enhanced size 5.5in, 4.25in')
             commands.append('set output "%s"' % fname)
         return '\n'.join(commands)
