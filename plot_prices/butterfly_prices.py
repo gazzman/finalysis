@@ -18,9 +18,9 @@ def gen_strike_intervals(start, end, increment):
         increment = Decimal(increment)
         strikes = range(start, end+increment, increment)
     elif float(increment) == 0.5:
-        start = Decimal(float(start)*10.0)
-        end = Decimal(float(end)*10.0)
-        increment = 5
+        start = Decimal(str(float(start)*10.0))
+        end = Decimal(str(float(end)*10.0))
+        increment = Decimal(str(float(increment)*10.0))
         strikes = range(start, end+increment, increment)
         strikes = [x/10.0 for x in strikes]
     else: return None
