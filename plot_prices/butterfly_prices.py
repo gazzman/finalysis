@@ -36,7 +36,7 @@ class ButterflyPrices():
     plot = 'plot "%(ofile)s" using 1:2 with boxes lc 2' # boxplots of bids
     plot +=   ', "%(ofile)s" using 1:3 with boxes lc 1' # boxplots of asks
     plot +=   ', "%(ofile)s" using 1:4 with boxes lc 0' # boxplots of midpoint
-    plot +=   ', "%(ufile)s" ps 2 pt 3 lc variable'     # underlying prices
+    plot +=   ', "%(ufile)s" ps 1 pt 3 lc variable'     # underlying prices
     plotkey = 'unset parametric\nset key on\n'
     plotkey += 'plot [xmin:xmax][ymin:ymax] ymax+1 lc 2 title "BID"' # BID key
     plotkey +=                           ', ymax+1 lc 1 title "ASK"' # ASK key
