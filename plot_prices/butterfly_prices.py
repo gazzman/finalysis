@@ -25,7 +25,7 @@ def gen_strike_intervals(start, end, increment):
         strikes = [x/10.0 for x in strikes]
     else: return None
     strike_intervals = zip(strikes[:-1], strikes[1:])
-    return strike_intervals
+    return strikes, strike_intervals
 
 class ButterflyPrices():
     price_codes = [1, 2]
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     start, end, increment = args.mktdatafname.split('.mkt')[0].split('_')
-    strike_intervals = gen_strike_intervals(start, end, increment)
+    strikes, strike_intervals = gen_strike_intervals(start, end, increment)
     bp = ButterflyPrices(strike_intervals)
     f = open(args.mktdatafname, 'r')
     for line in f:

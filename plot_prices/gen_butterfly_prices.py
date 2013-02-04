@@ -58,7 +58,7 @@ if __name__ == "__main__":
         key = (symbol, expiry, right)
         if not os.path.exists('_'.join(key)): os.makedirs('_'.join(key))
 
-        strike_intervals = gen_strike_intervals(start, end, increment)
+        strikes, strike_intervals = gen_strike_intervals(start, end, increment)
         if not strike_intervals: raise Exception('Strike interval error')
         
         c.prices[key] = ButterflyPrices(strike_intervals)
