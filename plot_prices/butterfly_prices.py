@@ -12,18 +12,11 @@ except ImportError:
 from finalysis.combo_gnuplots import GNUPlotBase
 
 def gen_strike_intervals(start, end, increment):
-    if float(increment) % 1 == 0:
-        start = Decimal(start)
-        end = Decimal(end)
-        increment = Decimal(increment)
-        strikes = range(start, end+increment, increment)
-    elif float(increment) == 0.5:
-        start = Decimal(str(float(start)*10.0))
-        end = Decimal(str(float(end)*10.0))
-        increment = Decimal(str(float(increment)*10.0))
-        strikes = range(start, end+increment, increment)
-        strikes = [x/10.0 for x in strikes]
-    else: return None
+    start = Decimal(str(float(start)*10.0))
+    end = Decimal(str(float(end)*10.0))
+    increment = Decimal(str(float(increment)*10.0))
+    strikes = range(start, end+increment, increment)
+    strikes = [x/10.0 for x in strikes]
     strike_intervals = zip(strikes[:-1], strikes[1:])
     return strikes, strike_intervals
 
