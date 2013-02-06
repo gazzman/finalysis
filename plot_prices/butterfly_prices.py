@@ -26,25 +26,34 @@ class ButterflyPrices():
     oline = '%0.2f %0.3f %0.3f %0.3f\n'
     uhead = '#price 0 color\n'
     uline = '%0.3f 0 2\n%0.3f 0 1\n%0.3f 0 0\n'
-    plot = 'plot "%(ofile)s" using 1:2 with boxes lc 2' # boxplots of bids
-    plot +=   ', "%(ofile)s" using 1:3 with boxes lc 1' # boxplots of asks
-    plot +=   ', "%(ofile)s" using 1:4 with boxes lc 0' # boxplots of midpoint
-    plot +=   ', "%(ufile)s" ps 3 pt 3 lc variable'     # underlying prices
+    plot = 'plot "%(ocallfile)s" using 1:2 with boxes lc 2' # boxplots of bids
+    plot +=   ', "%(ocallfile)s" using 1:3 with boxes lc 1' # boxplots of asks
+    plot +=   ', "%(ocallfile)s" using 1:4 with boxes lc 0' # boxplots of mids
+    plot +=   ', "%(oputfile)s" using 1:2 with boxes lc 5'  # boxplots of bids
+    plot +=   ', "%(oputfile)s" using 1:3 with boxes lc 4'  # boxplots of asks
+    plot +=   ', "%(oputfile)s" using 1:4 with boxes lc 3'  # boxplots of mids
+    plot +=   ', "%(ufile)s" ps 3 pt 3 lc variable'         # underlying prices
     plotkey = 'unset parametric\nset key on\n'
-    plotkey += 'plot [xmin:xmax][ymin:ymax] ymax+1 lc 2 title "BID"' # BID key
-    plotkey +=                           ', ymax+1 lc 1 title "ASK"' # ASK key
-    plotkey +=                           ', ymax+1 lc 0 title "MID"' # MID key
+    plotkey += 'plot [xmin:xmax][ymin:ymax] ymax+1 lc 2 title "CBID"' # BID key
+    plotkey +=                           ', ymax+1 lc 1 title "CASK"' # ASK key
+    plotkey +=                           ', ymax+1 lc 0 title "CMID"' # MID key
+    plotkey +=                           ', ymax+1 lc 5 title "PBID"' # BID key
+    plotkey +=                           ', ymax+1 lc 4 title "PASK"' # ASK key
+    plotkey +=                           ', ymax+1 lc 3 title "PMID"' # MID key
 
     def __init__(self, strike_intervals):
         max_payoff = 2*max([x[1] - x[0] for x in strike_intervals])
         self.intervals = [x for x in strike_intervals]
-        self.prices = [[0, 0, 0] for x in self.intervals]
+        self.prices = {'C': [[0, 0, 0] for x in self.intervals][:-1], 
+                       'P': [[0, 0, 0] for x in self.intervals][:-1],
+                       'U': [[0, 0, 0]]}
         self.gpbase = GNUPlotBase()
         self.gpbase.xmin = strike_intervals[0][0]*.9
         self.gpbase.xmax = strike_intervals[-2][-1]*1.1
         self.gpbase.ymin = -1*max_payoff
         self.gpbase.ymax = max_payoff
-        self.ofile = 'butterprices.dat'
+        self.ocallfile = 'buttercalls.dat'
+        self.oputfile = 'butterputs.dat'
         self.ufile = 'underprices.dat'
         self.xticks = [x[0] for x in strike_intervals 
                                          if strike_intervals.index(x) % 2 == 0]
@@ -57,19 +66,24 @@ class ButterflyPrices():
     def mid(self, interval):
         return 0.5*(interval[1] + interval[0])
 
-    def update_price(self, price, index, code):
-        self.prices[index][self.price_codes.index(code)] = price
-        self.prices[index][-1] = self.mid(self.prices[index][:2])
-        f1 = open(self.ofile, 'w')
-        f1.write(self.ohead)
-        for i in range(0, len(self.prices)-1):
-            f1.write(self.oline 
-                          % ((self.intervals[i][-1],) + tuple(self.prices[i])))
-        f1.close()
-        f2 = open(self.ufile, 'w')
-        f2.write(self.uhead)
-        f2.write(self.uline % tuple(self.prices[-1]))
-        f2.close()
+    def write_opricedata(self, prices, filename):
+        f = open(filename, 'w')
+        f.write(self.ohead)
+        for i in range(0, len(prices)):
+            f.write(self.oline % ((self.intervals[i][-1],) + tuple(prices[i])))
+        f.close()
+
+    def update_price(self, price, right, index, code):
+        self.prices[right][index][self.price_codes.index(code)] = price
+        self.prices[right][index][-1] = self.mid(self.prices[right][index][:2])
+
+        self.write_opricedata(self.prices['C'], self.ocallfile)
+        self.write_opricedata(self.prices['P'], self.oputfile)
+
+        funder = open(self.ufile, 'w')
+        funder.write(self.uhead)
+        funder.write(self.uline % tuple(self.prices['U'][0]))
+        funder.close()
 
     def plot_prices(self, fname=None, timestamp=None):
         commands = []
@@ -78,7 +92,9 @@ class ButterflyPrices():
         commands.append(self.gpbase.gen_header(xlabel='Butterfly Body Strike',
                                ylabel='Butterfly Price',
                                timestamp=timestamp))
-        commands.append(self.plot % {'ofile': self.ofile, 'ufile': self.ufile})
+        commands.append(self.plot % {'ocallfile': self.ocallfile, 
+                                     'oputfile': self.oputfile,
+                                     'ufile': self.ufile})
         commands.append(self.plotkey)
         pcmds = '\n'.join(commands)
         try: self.g(pcmds)
