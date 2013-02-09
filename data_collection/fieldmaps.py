@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: latin-1 -*-
 fidelity_map = {'Account Name/Number': 'account',
                 'Symbol': 'symbol',
                 'Description': 'description',
@@ -29,7 +30,7 @@ schwab_map = {"Symbol": 'symbol',
               "% of Account": None,
               "Security Type": None}
 
-scottrade_map = {﻿'Symbol': 'symbol',
+scottrade_map = {'﻿Symbol': 'symbol',
                  'Description': 'description',
                  'Acct Type': None,
                  'Qty': 'qty',
