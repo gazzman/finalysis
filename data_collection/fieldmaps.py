@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: latin-1 -*-
-fidelity_map = {'Account Name/Number': 'account',
+fidelity_map = {'Account Name/Number': None,
                 'Symbol': 'symbol',
                 'Description': 'description',
                 'Quantity': 'qty',
