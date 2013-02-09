@@ -1,12 +1,9 @@
 #!/usr/bin/python
-from datetime import datetime, timedelta
-from StringIO import StringIO
+from datetime import datetime
 import csv
-import logging
 import os
 import sys
 
-from pytz import timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError, ProgrammingError
@@ -14,23 +11,9 @@ from sqlalchemy.schema import CreateSchema
 from sqlalchemy.ext.declarative import declarative_base
 
 from finalysis.data_collection.account_orms import (Account, Base, Position, 
+                                                    add_timezone, get_id,
                                                     gen_position_data, SCHEMA)
 from finalysis.data_collection.fieldmaps import scottrade_map
-
-def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
-    tz = timezone(locale)
-    dt = ' '.join([date, time])
-    dt = datetime.strptime(dt, fmt)
-    tzone = tz.tzname(dt)
-    return dt.date().isoformat(), ' '.join([dt.time().isoformat(), tzone])
-
-def get_id(account_info):
-    db_acc = session.query(Account).filter_by(**account_info).first()
-    if not db_acc:
-        db_acc = Account(**account_info)
-        session.add(db_acc)
-        session.commit()
-    return db_acc.id
 
 # For running from command line
 if __name__ == "__main__":
@@ -56,7 +39,7 @@ if __name__ == "__main__":
     date = mtime.date().strftime('%m/%d/%Y')
     time = mtime.time().strftime('%H:%M:%S')
     pos_data['date'], pos_data['time'] = add_timezone(date, time)
-    pos_data['id'] = get_id(account_info)
+    pos_data['id'] = get_id(account_info, session)
 
     c = csv.DictReader(open(pos_fname, 'r'))
     for row in c:

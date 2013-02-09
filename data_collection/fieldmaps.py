@@ -15,8 +15,6 @@ fidelity_map = {'Account Name/Number': None,
                 'Offering Period': None,
                 'Total Balance': None}
 
-ib_map = {}
-
 schwab_map = {"Symbol": 'symbol',
               "Name": 'description',
               "Quantity": 'qty',

@@ -1,6 +1,8 @@
 #!/usr/bin/python
+from datetime import datetime
 from decimal import Decimal
 
+from pytz import timezone
 from sqlalchemy import Column, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -25,13 +27,20 @@ class Position(Base):
                 primary_key=True, index=True)
     date = Column(DATE, primary_key=True, index=True)
     time = Column(Time(timezone=True), primary_key=True, index=True)
-    symbol = Column(VARCHAR(6), primary_key=True, index=True)
+    symbol = Column(VARCHAR(21), primary_key=True, index=True)
     description = Column(String, primary_key=True, index=True)
     qty = Column(NUMERIC(17,4))
     price = Column(NUMERIC(16,3))
     total_value = Column(NUMERIC(16,3))
 
-def gen_position_data(row, fieldmap):
+def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
+    tz = timezone(locale)
+    dt = ' '.join([date, time])
+    dt = datetime.strptime(dt, fmt)
+    tzone = tz.tzname(dt)
+    return dt.date().isoformat(), ' '.join([dt.time().isoformat(), tzone])
+
+def gen_position_data(row, fieldmap, cashdesc=None):
     position_data = {}
     for field in row:
         if fieldmap[field] in ['qty', 'price', 'total_value']: 
@@ -43,4 +52,13 @@ def gen_position_data(row, fieldmap):
         position_data['symbol'] = 'CASH'
         position_data['price'] = 1
         position_data['qty'] = position_data['total_value']
+        if cashdesc: position_data['description'] = cashdesc
     return position_data
+
+def get_id(account_info, session):
+    db_acc = session.query(Account).filter_by(**account_info).first()
+    if not db_acc:
+        db_acc = Account(**account_info)
+        session.add(db_acc)
+        session.commit()
+    return db_acc.id
