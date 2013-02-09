@@ -1,6 +1,5 @@
 #!/usr/bin/python
 from datetime import datetime, timedelta
-from logging.handlers import TimedRotatingFileHandler
 from StringIO import StringIO
 import csv
 import logging
@@ -9,10 +8,13 @@ import sys
 from pytz import timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, ProgrammingError
+from sqlalchemy.schema import CreateSchema
+from sqlalchemy.ext.declarative import declarative_base
 
-from positions_table import Account, Base, Position
-
+from finalysis.data_collection.account_orms import (Account, Base, Position, 
+                                                    gen_position_data, SCHEMA)
+from finalysis.data_collection.fieldmaps import schwab_map
 
 def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
     tz = timezone(locale)
@@ -21,39 +23,10 @@ def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
     tzone = tz.tzname(dt)
     return dt.date().isoformat(), ' '.join([dt.time().isoformat(), tzone])
 
-
-def seconds_elapsed(start, end):
-    s = (end - start).seconds
-    m = (end - start).microseconds
-    return round(s + m/1000000.0,3)
-
-
-def fix_header(header):
-    header = header.lower()
-    header = '_'.join(header.split())
-    header = '_'.join(header.split('('))
-    header = 'pct'.join(header.split('%'))
-    header = 'dollar'.join(header.split('$'))
-    header = header.strip('?)')
-    if header == 'capital_gain': header = 'reinvest_capital_gain'
-    return header
-
-
-def fix_data(data):
-    data = ''.join(data.split(','))
-    data = ''.join(data.split('$'))
-    data = ''.join(data.split('%'))
-    if data == '--': return None
-    elif data == 'N/A': return None
-    elif data == '': return None
-    elif data == 'Cash & Money Market': return 'Cash'
-    else: return data
-
-
-def get_id(account, session):
-    db_acc = session.query(Account).filter_by(**account).first()
+def get_id(account_info):
+    db_acc = session.query(Account).filter_by(**account_info).first()
     if not db_acc:
-        db_acc = Account(**account)
+        db_acc = Account(**account_info)
         session.add(db_acc)
         session.commit()
     return db_acc.id
@@ -62,30 +35,29 @@ def get_id(account, session):
 if __name__ == "__main__":
     pos_fname = sys.argv[1]
     db_name = sys.argv[2]
-    institution = ('institution', 'Schwab')
-    pos_time = {}
 
-    logger_format = ('%(levelno)s, [%(asctime)s #%(process)d]'
-                     + '%(levelname)6s -- %(threadName)s: %(message)s')
-    logger = logging.getLogger('schwab2db')
-    hdlr = TimedRotatingFileHandler('schwab2db.log', when='midnight')
-    fmt = logging.Formatter(fmt=logger_format)
-    hdlr.setFormatter(fmt)
-    logger.addHandler(hdlr)
-    logger.setLevel(logging.INFO)
+    # Connect to db
+    dburl = 'postgresql+psycopg2:///' + db_name
+    engine = create_engine(dburl)
+    try: engine.execute(CreateSchema(SCHEMA))
+    except ProgrammingError: pass
 
-    logger.info('Reading ' + pos_fname)
-    start = datetime.now()
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    account_info = {'institution': 'Schwab'}
+    pos_data = {}
 
     # Get the timestamp
     pos_file = open(pos_fname, 'r')
     lines = [x.strip() for x in pos_file.read().split('\n')]
     pos_line = [x for x in lines if 'positions' in x.lower()][0]
     dateinfo = pos_line.split('as of ')[-1].split()[0:2]
-    pos_time['date'], pos_time['time'] = add_timezone(*dateinfo)
+    pos_data['date'], pos_data['time'] = add_timezone(*dateinfo)
 
     # Split up the data by account
-    accounts = [x for x in lines if 'xxxx' in x.lower()]
+    accounts = [x for x in lines if 'xxxx-' in x.lower()]
     totals = [x for x in lines if 'total market value' in x.lower()]
 
     starts = [lines.index(x) for x in accounts]
@@ -94,34 +66,13 @@ if __name__ == "__main__":
 
     data = ['\n'.join(lines[x[0]+1:x[1]]) for x in ranges]
     data = [csv.DictReader(StringIO(x)) for x in data]
-
-    data = [[dict([(fix_header(z[0]), fix_data(z[1])) for z in y.items() \
-            if fix_data(z[1])]) for y in x] for x in data]
-
-    # Connect to db
-    dburl = 'postgresql+psycopg2:///' + db_name
-    engine = create_engine(dburl)
-
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    # Get account ids
-    accounts = [dict([institution, ('account', x)]) for x in accounts]
-    account_ids = [get_id(x, session) for x in accounts]
-
-    for a, d in zip(account_ids, data):
-        for row in d:
-            try:
-                session.add(Position(**dict(row.items() + pos_time.items() 
-                                            + [('id', a)])))
-                session.commit()
+    for i in range(0, len(accounts)):
+        account_info.update({'account': accounts[i]})
+        pos_data['id'] = get_id(account_info)
+        for row in data[i]:
+            pos_data.update(gen_position_data(row, schwab_map))
+            session.add(Position(**pos_data))
+            try: session.commit()
             except IntegrityError as err:
-                if 'duplicate key' in str(err):
-                    msg = 'Already have position data for account id ' + str(a)
-                    msg += ' for ticker ' + row['symbol'] 
-                    msg += ' at ' + ' '.join(dateinfo)
-                    logger.info(msg)
-                    pass
-                else: raise err
-                session.rollback()
+                if 'duplicate key' in str(err): session.rollback()
+                else: raise(err)
