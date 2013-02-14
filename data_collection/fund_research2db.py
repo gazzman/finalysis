@@ -38,6 +38,7 @@ def clean_field(field):
     return field
 
 def clean_data(data):
+    if not data: return None
     data = data.strip()
     if data == '' or data == 'N/A' or '--' in data: return None
     if data[-2:] == 'Yr': data = data.replace('Yr', '')
@@ -51,6 +52,12 @@ def clean_data(data):
     elif data[-1] == 'M': data = float(data[:-1])*1000000
     elif data[-1] == 'B': data = float(data[:-1])*1000000000
     return data
+
+def commit(session):
+    try: session.commit()
+    except IntegrityError as err:
+        if 'duplicate key' in str(err): session.rollback()
+        else: raise(err)
 
 if __name__ == "__main__":
     datafile = sys.argv[1]
@@ -72,6 +79,8 @@ if __name__ == "__main__":
 #    for f in c.fieldnames:
 #        print '%s,%s' % (f, clean_field(f))
     c.fieldnames = [clean_field(x) for x in c.fieldnames]
+#    with open('cleaned.csv', 'w') as outfile: 
+#        outfile.write(open(datafile, 'r').read())
     for row in c:
         print >> sys.stderr, 'Adding data for %s... ' % row['tickers.ticker'],
         tables = {}
@@ -82,17 +91,10 @@ if __name__ == "__main__":
             try: tables[table][field] = data
             except KeyError: tables[table] = {'ticker': row['tickers.ticker']}
         session.add(tickers(**tables['tickers']))
-        session.add(asset_allocation(**tables['asset_allocation']))
-        session.add(country_allocation(**tables['country_allocation']))
-        session.add(equity(**tables['equity']))
-        session.add(fixed_income(**tables['fixed_income']))
-        session.add(fund(**tables['fund']))
-        session.add(holdings(**tables['holdings']))
-        session.add(mkt_cap_allocation(**tables['mkt_cap_allocation']))
-        session.add(region_allocation(**tables['region_allocation']))
-        session.add(sector_allocation(**tables['sector_allocation']))
-        try: session.commit()
-        except IntegrityError as err:
-            if 'duplicate key' in str(err): session.rollback()
-            else: raise(err)
+        commit(session)
+        del tables['tickers']
+        for table in tables:
+            if tables[table]['date']:
+                session.add(locals()[table](**tables[table]))
+                commit(session)
         print >> sys.stderr, 'Done!'
