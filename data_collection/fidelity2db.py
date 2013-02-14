@@ -10,9 +10,9 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.schema import CreateSchema
 from sqlalchemy.ext.declarative import declarative_base
 
-from finalysis.data_collection.account_orms import (Account, Base, Position, 
-                                                    add_timezone, get_id,
-                                                    gen_position_data, SCHEMA)
+from finalysis.account_orms import (Account, Base, Position, 
+                                    add_timezone, get_id,
+                                    gen_position_data, SCHEMA)
 from finalysis.data_collection.fieldmaps import fidelity_map
 
 # For running from command line

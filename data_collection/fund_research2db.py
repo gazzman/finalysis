@@ -9,18 +9,18 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.schema import CreateSchema, DropSchema
 from sqlalchemy.ext.declarative import declarative_base
 
-from finalysis.data_collection.research_orms import (Base,
-                                    Ticker as tickers,
-                                    AssetAllocation as asset_allocation,
-                                    CountryAllocation as country_allocation,
-                                    Equity as equity,
-                                    FixedIncome as fixed_income,
-                                    Fund as fund,
-                                    Holdings as holdings,
-                                    MktCapAllocation as mkt_cap_allocation,
-                                    RegionAllocation as region_allocation,
-                                    SectorAllocation as sector_allocation,
-                                    SCHEMA)
+from finalysis.research_orms import (Base,
+                                     Ticker as tickers,
+                                     AssetAllocation as asset_allocation,
+                                     CountryAllocation as country_allocation,
+                                     Equity as equity,
+                                     FixedIncome as fixed_income,
+                                     Fund as fund,
+                                     Holdings as holdings,
+                                     MktCapAllocation as mkt_cap_allocation,
+                                     RegionAllocation as region_allocation,
+                                     SectorAllocation as sector_allocation,
+                                     SCHEMA)
 
 def clean_field(field):
     field = field.lower()
