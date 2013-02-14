@@ -89,7 +89,8 @@ if __name__ == "__main__":
             try: data = clean_data(row[key])
             except ValueError: data = row[key]
             try: tables[table][field] = data
-            except KeyError: tables[table] = {'ticker': row['tickers.ticker']}
+            except KeyError: tables[table] = {'ticker': row['tickers.ticker'],
+                                              field: data}
         session.add(tickers(**tables['tickers']))
         commit(session)
         del tables['tickers']
