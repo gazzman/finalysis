@@ -37,7 +37,8 @@ if __name__ == "__main__":
     mtime = datetime.fromtimestamp(os.path.getmtime(pos_fname))
     date = mtime.date().strftime('%m/%d/%Y')
     time = mtime.time().strftime('%H:%M:%S')
-    pos_data['date'], pos_data['time'] = add_timezone(date, time)
+    date, time = add_timezone(date, time)
+    pos_data['timestamp'] = '%s %s' % (date, time)
 
     c = csv.DictReader(open(pos_fname, 'r'))
     for row in c:

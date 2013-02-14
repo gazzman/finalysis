@@ -38,7 +38,8 @@ if __name__ == "__main__":
     lines = [x.strip() for x in pos_file.read().split('\n')]
     pos_line = [x for x in lines if 'positions' in x.lower()][0]
     dateinfo = pos_line.split('as of ')[-1].split()[0:2]
-    pos_data['date'], pos_data['time'] = add_timezone(*dateinfo)
+    date, time = add_timezone(*dateinfo)
+    pos_data['timestamp'] = '%s %s' % (date, time)
 
     # Split up the data by account
     accounts = [x for x in lines if 'xxxx-' in x.lower()]

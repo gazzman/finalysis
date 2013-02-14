@@ -3,10 +3,10 @@ from datetime import datetime
 from decimal import Decimal
 
 from pytz import timezone
-from sqlalchemy import Column, ForeignKey, Integer, String, Time
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.dialects.postgresql import CHAR, DATE, NUMERIC, VARCHAR
+from sqlalchemy.dialects.postgresql import CHAR, NUMERIC, VARCHAR
 
 Base = declarative_base()
 
@@ -25,8 +25,7 @@ class Position(Base):
     __table_args__ = {'schema':SCHEMA}
     id = Column(Integer, ForeignKey('%s.accounts.id' % SCHEMA),
                 primary_key=True, index=True)
-    date = Column(DATE, primary_key=True, index=True)
-    time = Column(Time(timezone=True), primary_key=True, index=True)
+    timestamp = Column(DateTime(timezone=True), primary_key=True, index=True)
     symbol = Column(VARCHAR(21), primary_key=True, index=True)
     description = Column(String, primary_key=True, index=True)
     qty = Column(NUMERIC(17,4))

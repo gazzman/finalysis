@@ -39,8 +39,9 @@ if __name__ == "__main__":
         account_info['account'] = statement.attrib['accountId']
         pos_data['id'] = get_id(account_info, session)
         date = statement.attrib['toDate']
-        pos_data['date'], pos_data['time'] = add_timezone(date, '235959',
-                                                          fmt='%Y%m%d %H%M%S')
+        date, time = add_timezone(date, '235959', fmt='%Y%m%d %H%M%S')
+        pos_data['timestamp'] = '%s %s' % (date, time)
+
         for report in statement:
             for position in report:
                 if 'cash' in report.tag.lower():

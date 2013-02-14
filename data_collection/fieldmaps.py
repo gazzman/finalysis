@@ -84,4 +84,6 @@ scottrade_map = {'﻿Symbol': 'symbol',
                  'Total Chg $': None,
                  'Volume': None,
                  'Week Close Price': None,
-                 'Year Close Price': None}
+                 'Year Close Price': None,
+                 '% off 52-Wk Low': None,
+                 '% off 52-Wk High': None}
