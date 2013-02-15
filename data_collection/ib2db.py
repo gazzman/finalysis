@@ -47,7 +47,7 @@ if __name__ == "__main__":
                 if 'cash' in report.tag.lower():
                     cash = report.getchildren()[0].attrib['endingCash']
                     cash = Decimal('%16.3f' % float(cash))
-                    pos_data['symbol'] = 'CASH'
+                    pos_data['symbol'] = 'USD'
                     pos_data['description'] = 'Brokerage'
                     pos_data['price'] = 1
                     pos_data['qty'] = cash
