@@ -65,15 +65,22 @@ if __name__ == "__main__":
 
     dburl = 'postgresql+psycopg2:///' + db_name
     engine = create_engine(dburl)
-    print >> sys.stderr, 'Dropping schema %s' % SCHEMA
-    try: engine.execute(DropSchema(SCHEMA, cascade=True))
+    print >> sys.stderr, "Ensuring schema '%s' exists" % SCHEMA
+    try: engine.execute(CreateSchema(SCHEMA))
     except ProgrammingError: pass
-    print >> sys.stderr, 'Recreating schema %s' % SCHEMA
-    engine.execute(CreateSchema(SCHEMA))
 
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
+
+    # An explicit entry for the CASH symbol
+    session.add(tickers(**{'ticker': 'USD', 
+                           'type': 'CASH', 
+                           'description': 'Cash Money'}))
+    session.add(asset_allocation(**{'ticker': 'USD',
+                                  'date': '1900-01-01',
+                                  'pct_long_cash': 100}))
+    commit(session)
 
     c = csv.DictReader(open(datafile, 'r'))
 #    for f in c.fieldnames:
