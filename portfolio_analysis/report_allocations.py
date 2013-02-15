@@ -1,12 +1,14 @@
 #!/usr/bin/python
+try: from collections import OrderedDict # >= 2.7
+except ImportError: from ordereddict import OrderedDict # 2.6
+from datetime import datetime
 import sys
+import lxml.etree as etree
 
 from sqlalchemy import MetaData, Table
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 
-#from finalysis.account_orms import SCHEMA as position_schema
-#from finalysis.research_orms import SCHEMA as data_schema
 from finalysis.account_orms import Position
 from finalysis.research_orms import (AssetAllocation,
                                      CountryAllocation,
@@ -15,12 +17,19 @@ from finalysis.research_orms import (AssetAllocation,
                                      Equity,
                                      FixedIncome,
                                      MktCapAllocation,
-                                     RegionAllocation,
+#                                     RegionAllocation,
                                      SectorAllocation)
+
+XML_STYLESHEET = '<?xml-stylesheet type="text/xsl" href="allocations.xsl"?>'
 
 def weighted_value(weight, value):
     if weight: return weight * value / 100
     else: return 0
+
+def titlify(category_name):
+    category_name = category_name.replace('_', ' ')
+    category_name = category_name.replace('pct ', '')
+    return category_name.title()
 
 if __name__ == '__main__':
     db_name = sys.argv[1]
@@ -32,6 +41,7 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
+    report = etree.Element('report')
     # Reflect tables
     positions = Table(Position.__tablename__, metadata, autoload=True, 
                      autoload_with=engine)
@@ -57,10 +67,13 @@ if __name__ == '__main__':
 
     current_pos = session.query(max_timestamp, *pos_cols)\
                                                 .group_by(*pos_cols).subquery()
-    current_value = session.query(func.sum(current_pos.columns.total_value))\
-                                                                   .all()[0][0]
-    current_cash = session.query(func.sum(current_pos.columns.total_value))\
-                        .filter(current_pos.columns.symbol=='CASH').all()[0][0]
+    current_value = session.query(func.sum(current_pos.columns\
+                                                     .total_value)).all()[0][0]
+    portfolio_value = etree.SubElement(report, 'portfolio_value')
+    portfolio_value.text = '%16.4f' % current_value
+    current_cash = etree.SubElement(report, 'total_cash')
+    current_cash.text = '%16.4f' % session.query(func.sum(current_pos.columns\
+          .total_value)).filter(current_pos.columns.symbol=='CASH').all()[0][0]
 
     sym_values = [x for x in session.query(current_pos.columns.symbol,
                                         current_pos.columns.total_value).all()]
@@ -70,16 +83,32 @@ if __name__ == '__main__':
         except KeyError: symbols[symbol] = value
 
     exclude = ['ticker', 'date']
-    allocations = {}
+    allocation_reports = etree.SubElement(report, 'allocation_reports')
     for table in allocation_tables:
+        max_date = func.max(table.columns.date)
         categories = [c for c in table.columns if c.name not in exclude]
         fieldnames = [c.name for c in categories]
         total_value = [0 for x in fieldnames]
-        rows = session.query(table.columns.ticker, *categories)\
-                        .filter(table.columns.ticker.in_(symbols.keys())).all()
+        rows = session.query(max_date, table.columns.ticker, *categories)\
+                        .filter(table.columns.ticker.in_(symbols.keys()))\
+                        .group_by(table.columns.ticker, *categories).all()
         for row in rows:
-            symbol = row[0]
-            value = [weighted_value(x, symbols[symbol]) for x in row[1:]]
+            symbol = row[1]
+            value = [weighted_value(x, symbols[symbol]) for x in row[2:]]
             total_value = [x + y for x, y in zip(total_value, value)]
-        relative_value = [100*x/current_value for x in total_value]
-        allocations[table.name] = zip(fieldnames, total_value, relative_value)
+        relative_value = [x/current_value for x in total_value]
+        allocation = etree.SubElement(allocation_reports, 'allocation_report',
+                                      {'title': titlify(table.name)})
+        for row in zip(fieldnames, total_value, relative_value):
+            category = etree.SubElement(allocation, 'category')
+            name = etree.SubElement(category, 'name')
+            name.text = titlify(row[0])
+            dollar = etree.SubElement(category, 'dollar_amount')
+            dollar.text = '%16.4f' % row[1]
+            proportion = etree.SubElement(category, 'wealth_proportion')
+            proportion.text = '%16.4f' % row[2]
+
+    date = datetime.now().date().isoformat()
+    with open('portfolio_allocations_%s.xml' % date, 'w') as xmlfile:
+        xmlfile.write('%s\n' % XML_STYLESHEET)
+        xmlfile.write(etree.tostring(allocation_reports, pretty_print=True))
