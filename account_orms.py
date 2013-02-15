@@ -48,7 +48,7 @@ def gen_position_data(row, fieldmap, cashdesc=None):
         elif fieldmap[field]:           
             position_data[fieldmap[field]] = row[field]
     if 'cash' in position_data['symbol'].lower():
-        position_data['symbol'] = 'CASH'
+        position_data['symbol'] = 'USD'
         position_data['price'] = 1
         position_data['qty'] = position_data['total_value']
         if cashdesc: position_data['description'] = cashdesc
