@@ -2,6 +2,7 @@
 try: from collections import OrderedDict # >= 2.7
 except ImportError: from ordereddict import OrderedDict # 2.6
 from datetime import datetime
+#import logging
 import sys
 import lxml.etree as etree
 
@@ -21,6 +22,9 @@ from finalysis.research_orms import (AssetAllocation,
                                      SectorAllocation)
 
 XML_STYLESHEET = '<?xml-stylesheet type="text/xsl" href="allocations.xsl"?>'
+
+#logging.basicConfig()
+#logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 def weighted_value(weight, value):
     if weight: return weight * value / 100
@@ -62,11 +66,15 @@ if __name__ == '__main__':
     # Current position query
     pos_cols = ['id', 'symbol', 'qty', 'price', 'total_value']
     pos_cols = [c for c in positions.columns if c.name in pos_cols]
+    distinct_cols = ['id', 'symbol']
+    distinct_cols = [c for c in positions.columns if c.name in distinct_cols]
     max_timestamp = func.max(positions.columns.timestamp)
     order = [positions.columns.id, positions.columns.symbol]
 
     current_pos = session.query(max_timestamp, *pos_cols)\
-                                                .group_by(*pos_cols).subquery()
+                         .distinct(*distinct_cols)\
+                         .group_by(*pos_cols)\
+                         .subquery()
     current_value = session.query(func.sum(current_pos.columns\
                                                      .total_value)).all()[0][0]
     portfolio_value = etree.SubElement(report, 'portfolio_value')
@@ -111,4 +119,4 @@ if __name__ == '__main__':
     date = datetime.now().date().isoformat()
     with open('portfolio_allocations_%s.xml' % date, 'w') as xmlfile:
         xmlfile.write('%s\n' % XML_STYLESHEET)
-        xmlfile.write(etree.tostring(allocation_reports, pretty_print=True))
+        xmlfile.write(etree.tostring(report, pretty_print=True))
