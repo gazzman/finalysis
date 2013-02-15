@@ -81,7 +81,7 @@ if __name__ == '__main__':
     portfolio_value.text = '%16.4f' % current_value
     current_cash = etree.SubElement(report, 'total_cash')
     current_cash.text = '%16.4f' % session.query(func.sum(current_pos.columns\
-          .total_value)).filter(current_pos.columns.symbol=='CASH').all()[0][0]
+          .total_value)).filter(current_pos.columns.symbol=='USD').all()[0][0]
 
     sym_values = [x for x in session.query(current_pos.columns.symbol,
                                         current_pos.columns.total_value).all()]
