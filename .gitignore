@@ -37,3 +37,4 @@ ticker*.txt
 
 tmp
 *.bash
+*.xml
