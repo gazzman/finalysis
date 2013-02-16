@@ -21,7 +21,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             </tr>
         </thead>
         <tbody>
-            <tr>
+            <tr style='color:blue'>
                 <td>Total</td>
                 <xsl:apply-templates select="dollar_value[@type='overall']"/>
                 <xsl:apply-templates select="proportion[@type='overall']"/>
@@ -74,6 +74,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             <tr>
                 <th>Symbol</th>
                 <th>Description</th>
+                <th>Quantity</th>
                 <th>Value</th>
                 <th>Proportion</th>
             </tr>
@@ -93,6 +94,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <th>Description</th>
                 <th>Gross Expense Ratio</th>
                 <th>Net Expense Ratio</th>
+                <th>Quantity</th>
                 <th>Value</th>
                 <th>Proportion</th>
             </tr>
@@ -112,6 +114,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <th>Description</th>
                 <th>Gross Expense Ratio</th>
                 <th>Net Expense Ratio</th>
+                <th>Quantity</th>
                 <th>Value</th>
                 <th>Proportion</th>
             </tr>
@@ -129,6 +132,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             <tr>
                 <th>Symbol</th>
                 <th>Description</th>
+                <th>Quantity</th>
                 <th>Value</th>
                 <th>Proportion</th>
             </tr>
@@ -172,6 +176,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <tr>
         <xsl:apply-templates select='ticker'/>
         <xsl:apply-templates select='description'/>
+        <xsl:apply-templates select='quantity'/>
         <xsl:apply-templates select='dollar_value'/>
         <xsl:apply-templates select='proportion'/>
     </tr>
@@ -181,6 +186,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <tr>
         <xsl:apply-templates select='ticker'/>
         <xsl:apply-templates select='description'/>
+        <xsl:apply-templates select='quantity'/>
         <xsl:apply-templates select='dollar_value'/>
         <xsl:apply-templates select='proportion'/>
     </tr>
@@ -192,6 +198,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:apply-templates select='description'/>
         <xsl:apply-templates select="expense_ratio[@type='gross']"/>
         <xsl:apply-templates select="expense_ratio[@type='net']"/>
+        <xsl:apply-templates select='quantity'/>
         <xsl:apply-templates select='dollar_value'/>
         <xsl:apply-templates select='proportion'/>
     </tr>
@@ -209,21 +216,27 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     </td>
 </xsl:template>
 
-<xsl:template match='expense_ratio'>
-    <td align='right' type='xs:decimal'>
-        <xsl:value-of select="format-number(., '0.00%')" />
-    </td>
-</xsl:template>
-
 <xsl:template match='dollar_value'>
     <td align='right' type='xs:decimal'>
         <xsl:value-of select="format-number(., '$#,##0.00')" />
     </td>
 </xsl:template>
 
+<xsl:template match='expense_ratio'>
+    <td align='right' type='xs:decimal'>
+        <xsl:value-of select="format-number(., '0.00%')" />
+    </td>
+</xsl:template>
+
 <xsl:template match='proportion'>
     <td align='right' type='xs:decimal'>
         <xsl:value-of select="format-number(., '0.00%')" />
+    </td>
+</xsl:template>
+
+<xsl:template match='quantity'>
+    <td align='right' type='xs:decimal'>
+        <xsl:value-of select="format-number(., '#,##0.000')" />
     </td>
 </xsl:template>
 
