@@ -57,42 +57,43 @@ def report_fund(fund_type, parent_element, fund):
                             fund.columns.ticker).all()
     avg_expense_ratio = 0
     total_fund_value = 0
-    for row in rows:
-        fund_lmnt = etree.SubElement(parent_element, 'fund')
-        symbol, description, gross_exp, net_exp = row[1:]
-        qty, value = symbols[symbol]
-        if not net_exp: net_exp = gross_exp
-        avg_expense_ratio += value*net_exp
-        total_fund_value += value
-        ticker = etree.SubElement(fund_lmnt, 'ticker')
-        ticker.text = symbol
-        desc_lmnt = etree.SubElement(fund_lmnt, 'description')
-        desc_lmnt.text = description
-        gross_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio', 
-                                          {'type': 'gross'})
-        gross_exp_lmnt.text = '%16.4f' % (gross_exp/100)
-        net_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio',
-                                        {'type': 'net'})
-        net_exp_lmnt.text = '%16.4f' % (net_exp/100)
-        total_qty = etree.SubElement(fund_lmnt, 'quantity')
-        total_qty.text = '%16.4f' % qty
-        total_value = etree.SubElement(fund_lmnt, 'dollar_value')
-        total_value.text = '%16.4f' % value
-        proportion = etree.SubElement(fund_lmnt, 'proportion')
-        proportion.text = '%16.4f' % (value/current_value)
-    avg_expense_ratio /= total_fund_value*100
-    avg_exp_lmnt = etree.SubElement(parent_element, 'expense_ratio')
-    avg_exp_lmnt.text = '%16.4f' % avg_expense_ratio
-    total_fund_lmnt = etree.SubElement(parent_element, 'dollar_value')
-    total_fund_lmnt.text = '%16.4f' % total_fund_value
-    fund_proportion = etree.SubElement(parent_element, 'proportion')
-    fund_proportion.text = '%16.4f' % (total_fund_value/current_value)    
+    if len(rows) > 0:
+        for row in rows:
+            fund_lmnt = etree.SubElement(parent_element, 'fund')
+            symbol, description, gross_exp, net_exp = row[1:]
+            qty, value = symbols[symbol]
+            if not net_exp: net_exp = gross_exp
+            avg_expense_ratio += value*net_exp
+            total_fund_value += value
+            ticker = etree.SubElement(fund_lmnt, 'ticker')
+            ticker.text = symbol
+            desc_lmnt = etree.SubElement(fund_lmnt, 'description')
+            desc_lmnt.text = description
+            gross_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio', 
+                                              {'type': 'gross'})
+            gross_exp_lmnt.text = '%16.4f' % (gross_exp/100)
+            net_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio',
+                                            {'type': 'net'})
+            net_exp_lmnt.text = '%16.4f' % (net_exp/100)
+            total_qty = etree.SubElement(fund_lmnt, 'quantity')
+            total_qty.text = '%16.4f' % qty
+            total_value = etree.SubElement(fund_lmnt, 'dollar_value')
+            total_value.text = '%16.4f' % value
+            proportion = etree.SubElement(fund_lmnt, 'proportion')
+            proportion.text = '%16.4f' % (value/current_value)
+        try: avg_expense_ratio /= total_fund_value*100
+        except ZeroDivisionError: avg_expense_ratio = 0
+        avg_exp_lmnt = etree.SubElement(parent_element, 'expense_ratio')
+        avg_exp_lmnt.text = '%16.4f' % avg_expense_ratio
+        total_fund_lmnt = etree.SubElement(parent_element, 'dollar_value')
+        total_fund_lmnt.text = '%16.4f' % total_fund_value
+        fund_proportion = etree.SubElement(parent_element, 'proportion')
+        fund_proportion.text = '%16.4f' % (total_fund_value/current_value)    
     return avg_expense_ratio, total_fund_value
 
-def report_security(parent_element, query):
+def report_security(parent_element, rows):
     long_value = 0
     short_value = 0
-    rows = query.all()
     for row in rows:
         security = etree.SubElement(parent_element, 'security')
         symbol, description = row
@@ -147,8 +148,8 @@ if __name__ == '__main__':
     metadata = MetaData()
     Session = sessionmaker(bind=engine)
     session = Session()
-
     report = etree.Element('report')
+
     # Reflect tables
     positions = Table(Position.__tablename__, metadata, autoload=True, 
                      autoload_with=engine, schema=portfolio_schema)
@@ -208,14 +209,16 @@ if __name__ == '__main__':
     portfolio_value = etree.SubElement(report, 'dollar_value',
                                                            {'type': 'overall'})
     portfolio_value.text = '%16.4f' % current_value
-    cash_value = etree.SubElement(report, 'dollar_value', {'type': 'cash'})
-    cash_value.text = '%16.4f' % current_cash
-    cash_proportion = etree.SubElement(report, 'proportion', {'type': 'cash'})
-    cash_proportion.text = '%16.4f' % (current_cash/current_value)
+    if current_cash:
+        cash_value = etree.SubElement(report, 'dollar_value', {'type': 'cash'})
+        cash_value.text = '%16.4f' % current_cash
+        cash_proportion = etree.SubElement(report, 'proportion', 
+                                           {'type': 'cash'})
+        cash_proportion.text = '%16.4f' % (current_cash/current_value)
+
     sym_values = session.query(current_pos.columns.symbol,
                                current_pos.columns.qty,
                                current_pos.columns.total_value).all()
-
     symbols = {}
     for (symbol, qty, value) in sym_values:
         try: symbols[symbol] =  [ x + y for (x, y) in zip(symbols[symbol], 
@@ -223,43 +226,40 @@ if __name__ == '__main__':
         except KeyError: symbols[symbol] = (qty, value)
 
     # Generate Funds report
-    try:
-        etfs = etree.SubElement(report, 'funds', {'type': 'ETFs'})
-        etf_expense, etf_value = report_fund('ETF', etfs, fund)
-    except ZeroDivisionError:
-        etf_expense, etf_value = (0, 0)
+    etfs = etree.SubElement(report, 'funds', {'type': 'ETFs'})
+    etf_expense, etf_value = report_fund('ETF', etfs, fund)
 
-    try:
-        mfs = etree.SubElement(report, 'funds', {'type': 'Mutual Funds'})
-        mf_expense, mf_value = report_fund('Mutual Fund', mfs, fund)
-    except ZeroDivisionError:
-        mf_expense, mf_value = (0, 0)
+    mfs = etree.SubElement(report, 'funds', {'type': 'Mutual Funds'})
+    mf_expense, mf_value = report_fund('Mutual Fund', mfs, fund)
 
     # Compute average expense ratio
     overall_expense = etf_expense * etf_value
     overall_expense += mf_expense * mf_value
     overall_expense /= current_value
-    overall_exp_lmnt = etree.SubElement(report, 'expense_ratio')
-    overall_exp_lmnt.text = '%16.4f' % overall_expense
+    if overall_expense > 0:
+        overall_exp_lmnt = etree.SubElement(report, 'expense_ratio')
+        overall_exp_lmnt.text = '%16.4f' % overall_expense
 
     # Generate Equities report
     equities = etree.SubElement(report, 'securities', {'type': 'Equities'})
-    stk_val = report_security(equities, 
-                              session.query(tickers.columns.ticker, 
-                                            tickers.columns.description)\
-                                     .filter(tickers.columns\
-                                                    .ticker\
-                                                    .in_(symbols.keys()))\
-                                     .filter(tickers.columns.type=='Stock'))
+    rows = session.query(tickers.columns.ticker, 
+                         tickers.columns.description)\
+                  .filter(tickers.columns.ticker.in_(symbols.keys()))\
+                  .filter(tickers.columns.type=='Stock')\
+                  .all()
+    if len(rows) > 0:
+        stk_val = report_security(equities, rows)
 
     # Generate Options report        
     options = etree.SubElement(report, 'securities', {'type': 'Options'})
     option_symbols = [x for x in symbols.keys() if len(x) == 21]
-    opt_val = report_security(options, 
-                              session.query(current_pos.columns.symbol, 
-                                            current_pos.columns.description)\
-                                     .filter(current_pos.columns\
-                                     .symbol.in_(option_symbols)))
+    opt_val = {'long': 0, 'short': 0}
+    if len(option_symbols) > 0:
+        rows = session.query(current_pos.columns.symbol, 
+                             current_pos.columns.description)\
+                      .filter(current_pos.columns.symbol.in_(option_symbols))\
+                      .all()
+        opt_val = report_security(options, rows)
 
     # Generate Allocation Reports
     exclude = ['ticker', 'date']
