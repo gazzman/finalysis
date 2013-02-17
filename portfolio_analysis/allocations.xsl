@@ -3,21 +3,65 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
 <xsl:template match="/">
     <html>
+    <head>
+    <style type="text/css">
+        h1 {
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 18px;
+            margin: 10px 0;
+            }
+        span.date {
+                   position: absolute;
+                   right: 20px;
+                   top: 18px;
+                   font-size: 10px;
+                   }
+        table {
+               border-bottom: 1px solid #BFBFBF;
+               border-top: 1px solid #BFBFBF;
+               width: 100%;
+               font-size: 12px;
+               border-collapse: collapse;
+               border-spacing: 0;
+               margin-bottom: 30px;
+               position: relative;
+               }
+        td {border-top: 1px solid #DEDEDE;}
+        th {
+            background-color: #EAEAEA;
+            border-bottom: 1px solid #BFBFBF;
+            font-size: 12px;
+            padding: 7px 10px 7px 0;
+            vertical-align: bottom;
+            white-space: nowrap;
+            }
+        th.number {text-align: right}
+        th.category {text-align: left}
+        th.description {text-align: left}
+    </style>
+     <title>
+            Portfolio Allocation as of <xsl:apply-templates select='report/date'/>
+        </title>
+    </head>
     <body>
     <xsl:apply-templates/>
     </body>
     </html>
 </xsl:template>
 
-<xsl:template match='report'>
-    <h1>Portfolio Overview</h1>
-    <table border='3'>
+x<xsl:template match='report'>
+    <table>
         <thead>
+            <h1>Portfolio Overview</h1>
+            <span class='date'>
+                as of <xsl:apply-templates select='date'/>
+            </span>
             <tr>
-                <th>Asset Type</th>
-                <th>Value</th>
-                <th>Proportion</th>
-                <th>Expense Ratio</th>
+                <th class='category'>Asset Type</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
+                <th class='number'>Expense Ratio</th>
             </tr>
         </thead>
         <tbody>
@@ -68,15 +112,18 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 
 <xsl:template match='equities'>
-    <h1>Equities Held</h1>
-    <table border='3'>
+    <table>
         <thead>
+            <h1>Equities Held</h1>
+            <span class='date'>
+                as of <xsl:apply-templates select='/report/date'/>
+            </span>
             <tr>
-                <th>Symbol</th>
-                <th>Description</th>
-                <th>Quantity</th>
-                <th>Value</th>
-                <th>Proportion</th>
+                <th class='category'>Symbol</th>
+                <th class='description'>Description</th>
+                <th class='number'>Quantity</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
             </tr>
         </thead>
         <tbody>
@@ -86,17 +133,20 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 
 <xsl:template match='etfs'>
-    <h1>ETFs Held</h1>
-    <table border='3'>
+    <table>
         <thead>
+            <h1>ETFs Held</h1>
+            <span class='date'>
+                as of <xsl:apply-templates select='/report/date'/>
+            </span>
             <tr>
-                <th>Fund Symbol</th>
-                <th>Description</th>
-                <th>Gross Expense Ratio</th>
-                <th>Net Expense Ratio</th>
-                <th>Quantity</th>
-                <th>Value</th>
-                <th>Proportion</th>
+                <th class='category'>Symbol</th>
+                <th class='description'>Description</th>
+                <th class='number'>Gross Expense</th>
+                <th class='number'>Net Expense</th>
+                <th class='number'>Quantity</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
             </tr>
         </thead>
         <tbody>
@@ -106,17 +156,20 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 
 <xsl:template match='mfs'>
-    <h1>Mutual Funds Held</h1>
-    <table border='3'>
+    <table>
         <thead>
+            <h1>Mutual Funds Held</h1>
+            <span class='date'>
+                as of <xsl:apply-templates select='/report/date'/>
+            </span>
             <tr>
-                <th>Fund Symbol</th>
-                <th>Description</th>
-                <th>Gross Expense Ratio</th>
-                <th>Net Expense Ratio</th>
-                <th>Quantity</th>
-                <th>Value</th>
-                <th>Proportion</th>
+                <th class='category'>Symbol</th>
+                <th class='description'>Description</th>
+                <th class='number'>Gross Expense</th>
+                <th class='number'>Net Expense</th>
+                <th class='number'>Quantity</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
             </tr>
         </thead>
         <tbody>
@@ -126,15 +179,18 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 
 <xsl:template match='options'>
-    <h1>Options Held</h1>
-    <table border='3'>
+    <table>
         <thead>
+            <h1>Options Held</h1>
+            <span class='date'>
+                as of <xsl:apply-templates select='/report/date'/>
+            </span>
             <tr>
-                <th>Symbol</th>
-                <th>Description</th>
-                <th>Quantity</th>
-                <th>Value</th>
-                <th>Proportion</th>
+                <th class='category'>Symbol</th>
+                <th class='description'>Description</th>
+                <th class='number'>Quantity</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
             </tr>
         </thead>
         <tbody>
@@ -144,13 +200,16 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 
 <xsl:template match='allocation_report'>
-    <h1><xsl:value-of select="@title"/></h1>
-    <table border='3'>
+    <table>
         <thead>
+            <h1><xsl:value-of select="@title"/></h1>
+            <span class='date'>
+                as of <xsl:apply-templates select='/report/date'/>
+            </span>
             <tr>
-                <th>Category</th>
-                <th>Value</th>
-                <th>Proportion</th>
+                <th class='category'>Category</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
             </tr>
         </thead>
         <tbody>
@@ -202,6 +261,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:apply-templates select='dollar_value'/>
         <xsl:apply-templates select='proportion'/>
     </tr>
+</xsl:template>
+
+<xsl:template match='date'>
+    <xsl:value-of select="."/>
 </xsl:template>
 
 <xsl:template match='ticker'>
