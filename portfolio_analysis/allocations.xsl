@@ -12,6 +12,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 line-height: 18px;
                 margin: 10px 0;
                 }
+            h1.page {
+                     page-break-before: always;
+                     }
             span.date {
                        position: absolute;
                        right: 20px;
@@ -26,7 +29,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                    border-collapse: collapse;
                    border-spacing: 0;
                    margin-bottom: 30px;
-                   position: relative;
                    }
             td {border-top: 1px solid #DEDEDE;}
             td.number {
@@ -60,13 +62,13 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     </html>
 </xsl:template>
 
-x<xsl:template match='report'>
+<xsl:template match='report'>
+    <h1><xsl:value-of select="description" /> Overview</h1>
+    <span class='date'>
+        as of <xsl:apply-templates select='date'/>
+    </span>
     <table class='sortable'>
         <thead>
-            <h1><xsl:value-of select="description" /> Overview</h1>
-            <span class='date'>
-                as of <xsl:apply-templates select='date'/>
-            </span>
             <tr>
                 <th class='category'>Asset Type</th>
                 <th class='number'>Value</th>
@@ -120,16 +122,13 @@ x<xsl:template match='report'>
 </xsl:template>
 
 <xsl:template match='allocation_reports'>
-    <xsl:apply-templates select='allocation_report'/>
+        <xsl:apply-templates select='allocation_report'/>
 </xsl:template>
 
 <xsl:template match='funds'>
+    <h1 class='page'><xsl:value-of select="@type"/> Held</h1>
     <table class='sortable'>
         <thead>
-            <h1><xsl:value-of select="@type"/> Held</h1>
-            <span class='date'>
-                as of <xsl:apply-templates select='/report/date'/>
-            </span>
             <tr>
                 <th class='category'>Symbol</th>
                 <th class='description'>Description</th>
@@ -160,12 +159,9 @@ x<xsl:template match='report'>
 </xsl:template>
 
 <xsl:template match='securities'>
+    <h1 class='page'><xsl:value-of select="@type"/> Held</h1>
     <table class='sortable'>
         <thead>
-            <h1><xsl:value-of select="@type"/> Held</h1>
-            <span class='date'>
-                as of <xsl:apply-templates select='/report/date'/>
-            </span>
             <tr>
                 <th class='category'>Symbol</th>
                 <th class='description'>Description</th>
@@ -206,12 +202,9 @@ x<xsl:template match='report'>
 </xsl:template>
 
 <xsl:template match='allocation_report'>
+    <h1 class='page'><xsl:value-of select="@title"/></h1>
     <table class='sortable'>
         <thead>
-            <h1><xsl:value-of select="@title"/></h1>
-            <span class='date'>
-                as of <xsl:apply-templates select='/report/date'/>
-            </span>
             <tr>
                 <th class='category'>Category</th>
                 <th class='number'>Value</th>
