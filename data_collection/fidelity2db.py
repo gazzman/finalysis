@@ -34,13 +34,10 @@ if __name__ == "__main__":
     pos_data = {}
 
     # Get the timestamp
-    mtime = datetime.fromtimestamp(os.path.getmtime(pos_fname))
-    date = mtime.date().strftime('%m/%d/%Y')
-    time = mtime.time().strftime('%H:%M:%S')
-    date, time = add_timezone(date, time)
-    pos_data['timestamp'] = '%s %s' % (date, time)
+    f = open(pos_fname, 'r')
+    pos_data['timestamp'] = f.readline().strip().split()[-1]
 
-    c = csv.DictReader(open(pos_fname, 'r'))
+    c = csv.DictReader(f)
     for row in c:
         del row[None]
         account_info['account'] = row['Account Name/Number'].strip()
