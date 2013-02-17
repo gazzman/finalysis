@@ -4,59 +4,58 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/">
     <html>
     <head>
-    <script src="sorttable.js"></script>
-    <style type="text/css">
-        h1 {
-            font-size: 16px;
-            font-weight: bold;
-            line-height: 18px;
-            margin: 10px 0;
-            }
-        span.date {
-                   position: absolute;
-                   right: 20px;
-                   top: 18px;
-                   font-size: 10px;
+        <script src="sorttable.js"></script>
+        <style type="text/css">
+            h1 {
+                font-size: 16px;
+                font-weight: bold;
+                line-height: 18px;
+                margin: 10px 0;
+                }
+            span.date {
+                       position: absolute;
+                       right: 20px;
+                       top: 18px;
+                       font-size: 10px;
+                       }
+            table {
+                   border-bottom: 1px solid #BFBFBF;
+                   border-top: 1px solid #BFBFBF;
+                   width: 100%;
+                   font-size: 12px;
+                   border-collapse: collapse;
+                   border-spacing: 0;
+                   margin-bottom: 30px;
+                   position: relative;
                    }
-        table {
-               border-bottom: 1px solid #BFBFBF;
-               border-top: 1px solid #BFBFBF;
-               width: 100%;
-               font-size: 12px;
-               border-collapse: collapse;
-               border-spacing: 0;
-               margin-bottom: 30px;
-               position: relative;
-               }
-        td {border-top: 1px solid #DEDEDE;}
-        td.number {
-                   text-align: right;
-                   type: 'xs:decimal';
-                   font-family: Courier;
+            td {border-top: 1px solid #DEDEDE;}
+            td.number {
+                       text-align: right;
+                       type: 'xs:decimal';
+                       font-family: Courier;
+                       }
+            tfoot {
+                   background-color: #DEDEDE;
+                   font-weight: bold; 
                    }
-        tfoot {
-               background-color: #DEDEDE;
-               font-weight: bold; 
-               }
-        th {
-            background-color: #EAEAEA;
-            border-bottom: 1px solid #BFBFBF;
-            font-size: 12px;
-            padding: 7px 10px 7px 0;
-            vertical-align: bottom;
-            white-space: nowrap;
-            }
-        th.number {text-align: right}
-        th.category {text-align: left}
-        th.description {text-align: left}
-    </style>
-    <title>
-            Portfolio Allocation as of 
-            <xsl:apply-templates select='report/date'/>
-    </title>
+            th {
+                background-color: #EAEAEA;
+                border-bottom: 1px solid #BFBFBF;
+                font-size: 12px;
+                padding: 7px 10px 7px 0;
+                vertical-align: bottom;
+                white-space: nowrap;
+                }
+            th.number {text-align: right}
+            th.category {text-align: left}
+            th.description {text-align: left}
+        </style>
+        <title>
+            Portfolio Allocation as of <xsl:apply-templates select='report/date'/>
+        </title>
     </head>
     <body>
-    <xsl:apply-templates/>
+        <xsl:apply-templates/>
     </body>
     </html>
 </xsl:template>
@@ -83,25 +82,25 @@ x<xsl:template match='report'>
             </tr>
             <tr>
                 <td>Equities</td>
-                <xsl:apply-templates select="equities/dollar_value"/>
-                <xsl:apply-templates select="equities/proportion"/>
+                <xsl:apply-templates select="securities[@type='Equities']/dollar_value[@type='total']"/>
+                <xsl:apply-templates select="securities[@type='Equities']/proportion[@type='total']"/>
             </tr>
             <tr>
                 <td>Options</td>
-                <xsl:apply-templates select="options/dollar_value[@type='total']"/>
-                <xsl:apply-templates select="options/proportion[@type='total']"/>
+                <xsl:apply-templates select="securities[@type='Options']/dollar_value[@type='total']"/>
+                <xsl:apply-templates select="securities[@type='Options']/proportion[@type='total']"/>
             </tr>
             <tr>
                 <td>ETFs</td>
-                <xsl:apply-templates select="etfs/dollar_value"/>
-                <xsl:apply-templates select="etfs/proportion"/>
-                <xsl:apply-templates select="etfs/expense_ratio"/>
+                <xsl:apply-templates select="funds[@type='ETFs']/dollar_value"/>
+                <xsl:apply-templates select="funds[@type='ETFs']/proportion"/>
+                <xsl:apply-templates select="funds[@type='ETFs']/expense_ratio"/>
             </tr>
             <tr>
                 <td>Mutual Funds</td>
-                <xsl:apply-templates select="mfs/dollar_value"/>
-                <xsl:apply-templates select="mfs/proportion"/>
-                <xsl:apply-templates select="mfs/expense_ratio"/>
+                <xsl:apply-templates select="funds[@type='Mutual Funds']/dollar_value"/>
+                <xsl:apply-templates select="funds[@type='Mutual Funds']/proportion"/>
+                <xsl:apply-templates select="funds[@type='Mutual Funds']/expense_ratio"/>
             </tr>
         </tbody>
         <tfoot>
@@ -113,10 +112,10 @@ x<xsl:template match='report'>
             </tr>
         </tfoot>
     </table>
-    <xsl:apply-templates select='equities'/>
-    <xsl:apply-templates select='etfs'/>
-    <xsl:apply-templates select='mfs'/>
-    <xsl:apply-templates select='options'/>
+    <xsl:apply-templates select="securities[@type='Equities']"/>
+    <xsl:apply-templates select="securities[@type='Options']"/>
+    <xsl:apply-templates select="funds[@type='ETFs']"/>
+    <xsl:apply-templates select="funds[@type='Mutual Funds']"/>
     <xsl:apply-templates select='allocation_reports'/>
 </xsl:template>
 
@@ -124,43 +123,10 @@ x<xsl:template match='report'>
     <xsl:apply-templates select='allocation_report'/>
 </xsl:template>
 
-<xsl:template match='equities'>
+<xsl:template match='funds'>
     <table class='sortable'>
         <thead>
-            <h1>Equities Held</h1>
-            <span class='date'>
-                as of <xsl:apply-templates select='/report/date'/>
-            </span>
-            <tr>
-            
-                <th class='category'>Symbol</th>
-                <th class='description'>Description</th>
-                <th class='number'>Quantity</th>
-                <th class='number'>Value</th>
-                <th class='number'>Proportion</th>
-            </tr>
-        </thead>
-        <tbody>
-            <xsl:apply-templates select='equity'>
-                <xsl:sort select="ticker"/>
-            </xsl:apply-templates>
-        </tbody>
-        <tfoot>
-            <tr>
-                <td>Total</td>
-                <td></td>
-                <td></td>
-                <xsl:apply-templates select="dollar_value"/>
-                <xsl:apply-templates select="proportion"/>
-            </tr>
-        </tfoot>
-    </table>
-</xsl:template>
-
-<xsl:template match='etfs'>
-    <table class='sortable'>
-        <thead>
-            <h1>ETFs Held</h1>
+            <h1><xsl:value-of select="@type"/> Held</h1>
             <span class='date'>
                 as of <xsl:apply-templates select='/report/date'/>
             </span>
@@ -193,46 +159,10 @@ x<xsl:template match='report'>
     </table>
 </xsl:template>
 
-<xsl:template match='mfs'>
+<xsl:template match='securities'>
     <table class='sortable'>
         <thead>
-            <h1>Mutual Funds Held</h1>
-            <span class='date'>
-                as of <xsl:apply-templates select='/report/date'/>
-            </span>
-            <tr>
-                <th class='category'>Symbol</th>
-                <th class='description'>Description</th>
-                <th class='number'>Gross Expense</th>
-                <th class='number'>Net Expense</th>
-                <th class='number'>Quantity</th>
-                <th class='number'>Value</th>
-                <th class='number'>Proportion</th>
-            </tr>
-        </thead>
-        <tbody>
-            <xsl:apply-templates select='fund'>
-                <xsl:sort select="ticker"/>
-            </xsl:apply-templates>
-        </tbody>
-        <tfoot>
-            <tr>
-                <td>Total</td>
-                <td></td>
-                <td></td>
-                <xsl:apply-templates select="expense_ratio"/>
-                <td></td>
-                <xsl:apply-templates select="dollar_value"/>
-                <xsl:apply-templates select="proportion"/>
-            </tr>
-        </tfoot>
-    </table>
-</xsl:template>
-
-<xsl:template match='options'>
-    <table class='sortable'>
-        <thead>
-            <h1>Options Held</h1>
+            <h1><xsl:value-of select="@type"/> Held</h1>
             <span class='date'>
                 as of <xsl:apply-templates select='/report/date'/>
             </span>
@@ -245,7 +175,7 @@ x<xsl:template match='report'>
             </tr>
         </thead>
         <tbody>
-            <xsl:apply-templates select='option'>
+            <xsl:apply-templates select='security'>
                 <xsl:sort select='ticker'/>
             </xsl:apply-templates>
         </tbody>
@@ -314,17 +244,7 @@ x<xsl:template match='report'>
     </xsl:choose>
 </xsl:template>
 
-<xsl:template match='equity'>
-    <tr>
-        <xsl:apply-templates select='ticker'/>
-        <xsl:apply-templates select='description'/>
-        <xsl:apply-templates select='quantity'/>
-        <xsl:apply-templates select='dollar_value'/>
-        <xsl:apply-templates select='proportion'/>
-    </tr>
-</xsl:template>
-
-<xsl:template match='option'>
+<xsl:template match='security'>
     <tr>
         <xsl:apply-templates select='ticker'/>
         <xsl:apply-templates select='description'/>
@@ -335,7 +255,6 @@ x<xsl:template match='report'>
 </xsl:template>
 
 <xsl:template match='fund'>
-
     <tr>
         <xsl:apply-templates select='ticker'/>
         <xsl:apply-templates select='description'/>

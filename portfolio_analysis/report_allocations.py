@@ -89,6 +89,47 @@ def report_fund(fund_type, parent_element, fund):
     fund_proportion.text = '%16.4f' % (total_fund_value/current_value)    
     return avg_expense_ratio, total_fund_value
 
+def report_security(parent_element, query):
+    long_value = 0
+    short_value = 0
+    rows = query.all()
+    for row in rows:
+        security = etree.SubElement(parent_element, 'security')
+        symbol, description = row
+        qty, value = symbols[symbol]
+        if qty > 0: long_value += value
+        else: short_value += value
+        ticker = etree.SubElement(security, 'ticker')
+        ticker.text = symbol
+        desc_lmnt = etree.SubElement(security, 'description')
+        desc_lmnt.text = description
+        qty_lmnt = etree.SubElement(security, 'quantity')
+        qty_lmnt.text = '%16.4f' % qty
+        value_lmnt = etree.SubElement(security, 'dollar_value')
+        value_lmnt.text = '%16.4f' % value
+        proportion = etree.SubElement(security, 'proportion')
+        proportion.text = '%16.4f' % (value/current_value)
+    total_value = long_value + short_value
+    long_lmnt = etree.SubElement(parent_element, 'dollar_value', 
+                                 {'type': 'long'})
+    long_lmnt.text = '%16.4f' % long_value
+    short_lmnt = etree.SubElement(parent_element, 'dollar_value',
+                                  {'type': 'short'})
+    short_lmnt.text = '%16.4f' % short_value
+    total_lmnt = etree.SubElement(parent_element, 'dollar_value', 
+                                  {'type': 'total'})
+    total_lmnt.text = '%16.4f' % total_value
+    long_proportion = etree.SubElement(parent_element, 'proportion', 
+                                       {'type': 'long'})
+    long_proportion.text = '%16.4f' % (long_value/current_value)
+    short_proportion = etree.SubElement(parent_element, 'proportion',
+                                        {'type': 'short'})
+    short_proportion.text = '%16.4f' % (short_value/current_value)
+    total_proportion = etree.SubElement(parent_element, 'proportion',
+                                        {'type': 'total'})
+    total_proportion.text = '%16.4f' % (total_value/current_value)
+    return {'long': long_value, 'short': short_value}
+
 if __name__ == '__main__':
     def_schema='portfolio'
     description = 'A script that analyzes portfolio positions and allocations.'
@@ -183,17 +224,18 @@ if __name__ == '__main__':
 
     # Generate Funds report
     try:
-        etfs = etree.SubElement(report, 'etfs')
+        etfs = etree.SubElement(report, 'funds', {'type': 'ETFs'})
         etf_expense, etf_value = report_fund('ETF', etfs, fund)
     except ZeroDivisionError:
         etf_expense, etf_value = (0, 0)
 
     try:
-        mfs = etree.SubElement(report, 'mfs')
+        mfs = etree.SubElement(report, 'funds', {'type': 'Mutual Funds'})
         mf_expense, mf_value = report_fund('Mutual Fund', mfs, fund)
     except ZeroDivisionError:
         mf_expense, mf_value = (0, 0)
 
+    # Compute average expense ratio
     overall_expense = etf_expense * etf_value
     overall_expense += mf_expense * mf_value
     overall_expense /= current_value
@@ -201,73 +243,23 @@ if __name__ == '__main__':
     overall_exp_lmnt.text = '%16.4f' % overall_expense
 
     # Generate Equities report
-    equities = etree.SubElement(report, 'equities')
-    rows = session.query(tickers.columns.ticker, tickers.columns.description)\
-                        .filter(tickers.columns.ticker.in_(symbols.keys()))\
-                        .filter(tickers.columns.type=='Stock').all()
-    total_equity_value = 0
-    for row in rows:
-        equity = etree.SubElement(equities, 'equity')
-        symbol, description = row
-        qty, value = symbols[symbol]
-        total_equity_value += value
-        ticker = etree.SubElement(equity, 'ticker')
-        ticker.text = symbol
-        desc_lmnt = etree.SubElement(equity, 'description')
-        desc_lmnt.text = description
-        total_qty = etree.SubElement(equity, 'quantity')
-        total_qty.text = '%16.4f' % qty
-        total_value = etree.SubElement(equity, 'dollar_value')
-        total_value.text = '%16.4f' % value
-        proportion = etree.SubElement(equity, 'proportion')
-        proportion.text = '%16.4f' % (value/current_value)
-    total_equity_lmnt = etree.SubElement(equities, 'dollar_value')
-    total_equity_lmnt.text = '%16.4f' % total_equity_value
-    equity_proportion = etree.SubElement(equities, 'proportion')
-    equity_proportion.text = '%16.4f' % (total_equity_value/current_value)
+    equities = etree.SubElement(report, 'securities', {'type': 'Equities'})
+    stk_val = report_security(equities, 
+                              session.query(tickers.columns.ticker, 
+                                            tickers.columns.description)\
+                                     .filter(tickers.columns\
+                                                    .ticker\
+                                                    .in_(symbols.keys()))\
+                                     .filter(tickers.columns.type=='Stock'))
 
     # Generate Options report        
-    options = etree.SubElement(report, 'options')
+    options = etree.SubElement(report, 'securities', {'type': 'Options'})
     option_symbols = [x for x in symbols.keys() if len(x) == 21]
-    long_option_value = 0
-    short_option_value = 0
-    rows = session.query(current_pos.columns.symbol, 
-                         current_pos.columns.description)\
-                  .filter(current_pos.columns.symbol.in_(option_symbols))\
-                  .all()
-    for row in rows:
-        option = etree.SubElement(options, 'option')
-        symbol, description = row
-        qty, value = symbols[symbol]
-        if qty > 0: long_option_value += value
-        else: short_option_value += value
-        ticker = etree.SubElement(option, 'ticker')
-        ticker.text = symbol
-        desc_lmnt = etree.SubElement(option, 'description')
-        desc_lmnt.text = description
-        total_qty = etree.SubElement(option, 'quantity')
-        total_qty.text = '%16.4f' % qty
-        total_value = etree.SubElement(option, 'dollar_value')
-        total_value.text = '%16.4f' % value
-        proportion = etree.SubElement(option, 'proportion')
-        proportion.text = '%16.4f' % (value/current_value)
-    total_option_value = long_option_value + short_option_value
-    long_opt = etree.SubElement(options, 'dollar_value', {'type': 'long'})
-    long_opt.text = '%16.4f' % long_option_value
-    short_opt = etree.SubElement(options, 'dollar_value', {'type': 'short'})
-    short_opt.text = '%16.4f' % short_option_value
-    total_option_lmnt = etree.SubElement(options, 'dollar_value', 
-                                         {'type': 'total'})
-    total_option_lmnt.text = '%16.4f' % total_option_value
-    long_option_proportion = etree.SubElement(options, 'proportion',
-                                              {'type': 'long'})
-    long_option_proportion.text = '%16.4f' % (long_option_value/current_value)
-    short_option_proportion = etree.SubElement(options, 'proportion',
-                                              {'type': 'short'})
-    short_option_proportion.text = '%16.4f' % (short_option_value/current_value)
-    option_proportion = etree.SubElement(options, 'proportion',
-                                         {'type': 'total'})
-    option_proportion.text = '%16.4f' % (total_option_value/current_value)
+    opt_val = report_security(options, 
+                              session.query(current_pos.columns.symbol, 
+                                            current_pos.columns.description)\
+                                     .filter(current_pos.columns\
+                                     .symbol.in_(option_symbols)))
 
     # Generate Allocation Reports
     exclude = ['ticker', 'date']
@@ -288,8 +280,8 @@ if __name__ == '__main__':
             total_value = [x + y for x, y in zip(total_value, value)]
         relative_value = [x/current_value for x in total_value]
         if table.name == 'asset_allocation':
-            total_value[3] += long_option_value
-            total_value[-1] += short_option_value*-1
+            total_value[3] += opt_val['long']
+            total_value[-1] += opt_val['short']*-1
             total_allocation_value = sum(total_value[0:4])-sum(total_value[4:])
         else: 
             total_allocation_value = sum(total_value)
