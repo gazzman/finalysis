@@ -29,6 +29,8 @@ schwab_map = {"Symbol": 'symbol',
               "Security Type": None}
 
 scottrade_map = {'﻿Symbol': 'symbol',
+                 '﻿﻿Symbol': 'symbol',
+                 'Symbol': 'symbol',
                  'Description': 'description',
                  'Acct Type': None,
                  'Qty': 'qty',
