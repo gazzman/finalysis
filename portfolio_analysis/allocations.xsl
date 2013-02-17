@@ -63,7 +63,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 x<xsl:template match='report'>
     <table class='sortable'>
         <thead>
-            <h1>Portfolio Overview</h1>
+            <h1><xsl:value-of select="description" /> Overview</h1>
             <span class='date'>
                 as of <xsl:apply-templates select='date'/>
             </span>

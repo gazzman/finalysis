@@ -149,6 +149,8 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
     report = etree.Element('report')
+    portfolio_name = etree.SubElement(report, 'description')
+    portfolio_name.text = titlify(portfolio_schema)
 
     # Reflect tables
     positions = Table(Position.__tablename__, metadata, autoload=True, 
