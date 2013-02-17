@@ -3,6 +3,9 @@ try: from collections import OrderedDict # >= 2.7
 except ImportError: from ordereddict import OrderedDict # 2.6
 from datetime import datetime
 #import logging
+#logging.basicConfig()
+#logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+import argparse
 import sys
 import lxml.etree as etree
 
@@ -25,8 +28,6 @@ from finalysis.research_orms import (Ticker,
 
 XML_STYLESHEET = '<?xml-stylesheet type="text/xsl" href="allocations.xsl"?>'
 
-#logging.basicConfig()
-#logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 def weighted_value(weight, value):
     if weight: return weight * value / 100
@@ -86,12 +87,19 @@ def report_fund(fund_type, parent_element, fund):
     return avg_expense_ratio, total_fund_value
 
 if __name__ == '__main__':
-    db_name = sys.argv[1]
-    if len(sys.argv) == 3: portfolio_schema = sys.argv[2]
-    else: portfolio_schema = 'portfolio'
+    default_schema='portfolio'
+    description = 'A script that analyzes portfolio positions and allocations.'
+    p = argparse.ArgumentParser(description=description)
+    p.add_argument('db_name', type=str, help='name of the postgresql database')
+    p.add_argument('--schema', default=default_schema,
+                   help="positions table schema; default is '%s'"
+                         % default_schema)
+    p.add_argument('--date', help='%%Y-%%m-%%d date from which to pull data')
+    args = p.parse_args()
+    portfolio_schema = args.schema
 
     # Connect to db
-    dburl = 'postgresql+psycopg2:///' + db_name
+    dburl = 'postgresql+psycopg2:///' + args.db_name
     engine = create_engine(dburl)
     metadata = MetaData()
     Session = sessionmaker(bind=engine)
@@ -122,13 +130,37 @@ if __name__ == '__main__':
     pos_cols = [c for c in positions.columns if c.name in pos_cols]
     distinct_cols = ['id', 'symbol', 'description']
     distinct_cols = [c for c in positions.columns if c.name in distinct_cols]
-    max_timestamp = func.max(positions.columns.timestamp)
+    date_col = positions.columns.timestamp
+    max_timestamp = func.max(date_col).label('timestamp')
     order = [positions.columns.id, positions.columns.symbol]
 
+    if args.date: date = args.date
+    else:
+        current_pos = session.query(max_timestamp, *pos_cols)\
+                                   .distinct(*distinct_cols)\
+                                   .group_by(*pos_cols)\
+                                   .subquery()  
+        date = session.query(func.min(current_pos.columns.timestamp))\
+                                .all()[0][0].date().isoformat()
+
     current_pos = session.query(max_timestamp, *pos_cols)\
-                               .distinct(*distinct_cols)\
-                               .group_by(*pos_cols)\
-                               .subquery()
+                         .distinct(*distinct_cols)\
+                         .group_by(*pos_cols)\
+                         .filter(func.to_char(date_col, 'YYYY-MM-DD')==date)\
+                         .subquery()
+
+    timestamps = session.query(current_pos.columns.timestamp)\
+                                .order_by(current_pos.columns.timestamp)\
+                                .all()
+    latest_timestamp = timestamps[-1][0]
+    earliest_timestamp = timestamps[0][0]
+
+    portfolio_date = etree.SubElement(report, 'date')
+    portfolio_date.text = date
+    early = etree.SubElement(report, 'timestamp', {'type': 'earliest'})
+    early.text = earliest_timestamp.isoformat()
+    late = etree.SubElement(report, 'timestamp', {'type': 'latest'})
+    late.text = latest_timestamp.isoformat()
 
     # Generate portfolio value report
     total_prop = etree.SubElement(report, 'proportion', {'type': 'overall'})
@@ -155,11 +187,17 @@ if __name__ == '__main__':
         except KeyError: symbols[symbol] = (qty, value)
 
     # Generate Funds report
-    etfs = etree.SubElement(report, 'etfs')
-    etf_expense, etf_value = report_fund('ETF', etfs, fund)
+    try:
+        etfs = etree.SubElement(report, 'etfs')
+        etf_expense, etf_value = report_fund('ETF', etfs, fund)
+    except ZeroDivisionError:
+        etf_expense, etf_value = (0, 0)
 
-    mfs = etree.SubElement(report, 'mfs')
-    mf_expense, mf_value = report_fund('Mutual Fund', mfs, fund)
+    try:
+        mfs = etree.SubElement(report, 'mfs')
+        mf_expense, mf_value = report_fund('Mutual Fund', mfs, fund)
+    except ZeroDivisionError:
+        mf_expense, mf_value = (0, 0)
 
     overall_expense = etf_expense * etf_value
     overall_expense += mf_expense * mf_value
@@ -249,7 +287,6 @@ if __name__ == '__main__':
             proportion.text = '%16.4f' % row[2]
 
     # Store data in xml file
-    date = datetime.now().date().isoformat()
     with open('portfolio_allocations_%s.xml' % date, 'w') as xmlfile:
         xmlfile.write('%s\n' % XML_STYLESHEET)
         xmlfile.write(etree.tostring(report, pretty_print=True))
