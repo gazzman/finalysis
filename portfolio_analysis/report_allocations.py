@@ -28,7 +28,6 @@ from finalysis.research_orms import (Ticker,
 
 XML_STYLESHEET = '<?xml-stylesheet type="text/xsl" href="allocations.xsl"?>'
 
-
 def weighted_value(weight, value):
     if weight: return weight * value / 100
     else: return 0
@@ -41,19 +40,21 @@ def titlify(category_name):
 def report_fund(fund_type, parent_element, fund):
     max_date = func.max(fund.columns.date)
     rows = session.query(max_date, 
-                        fund.columns.ticker, 
-                        tickers.columns.description,
-                        fund.columns.gross_expense_ratio,
-                        fund.columns.net_expense_ratio)\
-                        .distinct(fund.columns.gross_expense_ratio, fund.columns.ticker)\
-                        .filter(fund.columns.ticker.in_(symbols.keys()))\
-                        .filter(tickers.columns.ticker==fund.columns.ticker)\
-                        .filter(tickers.columns.type==fund_type)\
-                        .group_by(fund.columns.ticker,
-                                  tickers.columns.description,
-                                  fund.columns.gross_expense_ratio,
-                                  fund.columns.net_expense_ratio)\
-                        .order_by(fund.columns.gross_expense_ratio.desc(), fund.columns.ticker).all()
+                         fund.columns.ticker, 
+                         tickers.columns.description,
+                         fund.columns.gross_expense_ratio,
+                         fund.columns.net_expense_ratio)\
+                  .distinct(fund.columns.gross_expense_ratio, 
+                            fund.columns.ticker)\
+                  .filter(fund.columns.ticker.in_(symbols.keys()))\
+                  .filter(tickers.columns.ticker==fund.columns.ticker)\
+                  .filter(tickers.columns.type==fund_type)\
+                  .group_by(fund.columns.ticker,
+                            tickers.columns.description,
+                            fund.columns.gross_expense_ratio,
+                            fund.columns.net_expense_ratio)\
+                  .order_by(fund.columns.gross_expense_ratio.desc(), 
+                            fund.columns.ticker).all()
     avg_expense_ratio = 0
     total_fund_value = 0
     for row in rows:
@@ -67,9 +68,11 @@ def report_fund(fund_type, parent_element, fund):
         ticker.text = symbol
         desc_lmnt = etree.SubElement(fund_lmnt, 'description')
         desc_lmnt.text = description
-        gross_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio', {'type': 'gross'})
+        gross_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio', 
+                                          {'type': 'gross'})
         gross_exp_lmnt.text = '%16.4f' % (gross_exp/100)
-        net_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio', {'type': 'net'})
+        net_exp_lmnt = etree.SubElement(fund_lmnt, 'expense_ratio',
+                                        {'type': 'net'})
         net_exp_lmnt.text = '%16.4f' % (net_exp/100)
         total_qty = etree.SubElement(fund_lmnt, 'quantity')
         total_qty.text = '%16.4f' % qty
@@ -87,14 +90,13 @@ def report_fund(fund_type, parent_element, fund):
     return avg_expense_ratio, total_fund_value
 
 if __name__ == '__main__':
-    default_schema='portfolio'
+    def_schema='portfolio'
     description = 'A script that analyzes portfolio positions and allocations.'
     p = argparse.ArgumentParser(description=description)
     p.add_argument('db_name', type=str, help='name of the postgresql database')
-    p.add_argument('--schema', default=default_schema,
-                   help="positions table schema; default is '%s'"
-                         % default_schema)
-    p.add_argument('--date', help='%%Y-%%m-%%d date from which to pull data')
+    p.add_argument('date', help='%%Y-%%m-%%d date from which to pull data')
+    p.add_argument('--schema', default=def_schema,
+                   help="positions table schema; default is '%s'" % def_schema)
     args = p.parse_args()
     portfolio_schema = args.schema
 
@@ -134,15 +136,7 @@ if __name__ == '__main__':
     max_timestamp = func.max(date_col).label('timestamp')
     order = [positions.columns.id, positions.columns.symbol]
 
-    if args.date: date = args.date
-    else:
-        current_pos = session.query(max_timestamp, *pos_cols)\
-                                   .distinct(*distinct_cols)\
-                                   .group_by(*pos_cols)\
-                                   .subquery()  
-        date = session.query(func.min(current_pos.columns.timestamp))\
-                                .all()[0][0].date().isoformat()
-
+    date = args.date
     current_pos = session.query(max_timestamp, *pos_cols)\
                          .distinct(*distinct_cols)\
                          .group_by(*pos_cols)\
@@ -150,8 +144,8 @@ if __name__ == '__main__':
                          .subquery()
 
     timestamps = session.query(current_pos.columns.timestamp)\
-                                .order_by(current_pos.columns.timestamp)\
-                                .all()
+                        .order_by(current_pos.columns.timestamp)\
+                        .all()
     latest_timestamp = timestamps[-1][0]
     earliest_timestamp = timestamps[0][0]
 
@@ -170,7 +164,8 @@ if __name__ == '__main__':
     current_cash = session.query(func.sum(current_pos.columns\
                          .total_value))\
                          .filter(current_pos.columns.symbol=='USD').all()[0][0]
-    portfolio_value = etree.SubElement(report, 'dollar_value', {'type': 'overall'})
+    portfolio_value = etree.SubElement(report, 'dollar_value',
+                                                           {'type': 'overall'})
     portfolio_value.text = '%16.4f' % current_value
     cash_value = etree.SubElement(report, 'dollar_value', {'type': 'cash'})
     cash_value.text = '%16.4f' % current_cash
@@ -234,14 +229,18 @@ if __name__ == '__main__':
     # Generate Options report        
     options = etree.SubElement(report, 'options')
     option_symbols = [x for x in symbols.keys() if len(x) == 21]
-    total_option_value = 0
-    rows = session.query(positions.columns.symbol, positions.columns.description)\
-                        .filter(positions.columns.symbol.in_(option_symbols)).all()
+    long_option_value = 0
+    short_option_value = 0
+    rows = session.query(current_pos.columns.symbol, 
+                         current_pos.columns.description)\
+                  .filter(current_pos.columns.symbol.in_(option_symbols))\
+                  .all()
     for row in rows:
         option = etree.SubElement(options, 'option')
         symbol, description = row
         qty, value = symbols[symbol]
-        total_option_value += value
+        if qty > 0: long_option_value += value
+        else: short_option_value += value
         ticker = etree.SubElement(option, 'ticker')
         ticker.text = symbol
         desc_lmnt = etree.SubElement(option, 'description')
@@ -252,9 +251,22 @@ if __name__ == '__main__':
         total_value.text = '%16.4f' % value
         proportion = etree.SubElement(option, 'proportion')
         proportion.text = '%16.4f' % (value/current_value)
-    total_option_lmnt = etree.SubElement(options, 'dollar_value')
+    total_option_value = long_option_value + short_option_value
+    long_opt = etree.SubElement(options, 'dollar_value', {'type': 'long'})
+    long_opt.text = '%16.4f' % long_option_value
+    short_opt = etree.SubElement(options, 'dollar_value', {'type': 'short'})
+    short_opt.text = '%16.4f' % short_option_value
+    total_option_lmnt = etree.SubElement(options, 'dollar_value', 
+                                         {'type': 'total'})
     total_option_lmnt.text = '%16.4f' % total_option_value
-    option_proportion = etree.SubElement(options, 'proportion')
+    long_option_proportion = etree.SubElement(options, 'proportion',
+                                              {'type': 'long'})
+    long_option_proportion.text = '%16.4f' % (long_option_value/current_value)
+    short_option_proportion = etree.SubElement(options, 'proportion',
+                                              {'type': 'short'})
+    short_option_proportion.text = '%16.4f' % (short_option_value/current_value)
+    option_proportion = etree.SubElement(options, 'proportion',
+                                         {'type': 'total'})
     option_proportion.text = '%16.4f' % (total_option_value/current_value)
 
     # Generate Allocation Reports
@@ -275,6 +287,13 @@ if __name__ == '__main__':
             value = [weighted_value(x, value) for x in row[2:]]
             total_value = [x + y for x, y in zip(total_value, value)]
         relative_value = [x/current_value for x in total_value]
+        if table.name == 'asset_allocation':
+            total_value[3] += long_option_value
+            total_value[-1] += short_option_value*-1
+            total_allocation_value = sum(total_value[0:4])-sum(total_value[4:])
+        else: 
+            total_allocation_value = sum(total_value)
+        relative_allocation_value = total_allocation_value/current_value
         allocation = etree.SubElement(allocation_reports, 'allocation_report',
                                       {'title': titlify(table.name)})
         for row in zip(fieldnames, total_value, relative_value):
@@ -285,6 +304,10 @@ if __name__ == '__main__':
             dollar.text = '%16.4f' % row[1]
             proportion = etree.SubElement(category, 'proportion')
             proportion.text = '%16.4f' % row[2]
+        tav_lmnt = etree.SubElement(allocation, 'dollar_value')
+        tav_lmnt.text = '%16.4f' % total_allocation_value
+        rav_lmnt = etree.SubElement(allocation, 'proportion')
+        rav_lmnt.text = '%16.4f' % relative_allocation_value
 
     # Store data in xml file
     with open('portfolio_allocations_%s.xml' % date, 'w') as xmlfile:
