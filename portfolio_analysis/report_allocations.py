@@ -39,6 +39,7 @@ def titlify(category_name):
 
 def report_fund(fund_type, parent_element, fund):
     max_date = func.max(fund.columns.date)
+    fund_symbols = {}
     rows = session.query(max_date, 
                          fund.columns.ticker, 
                          tickers.columns.description,
@@ -62,6 +63,7 @@ def report_fund(fund_type, parent_element, fund):
             fund_lmnt = etree.SubElement(parent_element, 'fund')
             symbol, description, gross_exp, net_exp = row[1:]
             qty, value = symbols[symbol]
+            fund_symbols[symbol] = value
             if not net_exp: net_exp = gross_exp
             avg_expense_ratio += value*net_exp
             total_fund_value += value
@@ -89,15 +91,17 @@ def report_fund(fund_type, parent_element, fund):
         total_fund_lmnt.text = '%16.4f' % total_fund_value
         fund_proportion = etree.SubElement(parent_element, 'proportion')
         fund_proportion.text = '%16.4f' % (total_fund_value/current_value)    
-    return avg_expense_ratio, total_fund_value
+    return avg_expense_ratio, total_fund_value, fund_symbols
 
 def report_security(parent_element, rows):
+    security_symbols = {}
     long_value = 0
     short_value = 0
     for row in rows:
         security = etree.SubElement(parent_element, 'security')
         symbol, description = row
         qty, value = symbols[symbol]
+        security_symbols[symbol] = (value, description)
         if qty > 0: long_value += value
         else: short_value += value
         ticker = etree.SubElement(security, 'ticker')
@@ -129,7 +133,7 @@ def report_security(parent_element, rows):
     total_proportion = etree.SubElement(parent_element, 'proportion',
                                         {'type': 'total'})
     total_proportion.text = '%16.4f' % (total_value/current_value)
-    return {'long': long_value, 'short': short_value}
+    return {'long': long_value, 'short': short_value}, security_symbols
 
 if __name__ == '__main__':
     def_schema='portfolio'
@@ -164,8 +168,8 @@ if __name__ == '__main__':
                  autoload_with=engine, schema=SCHEMA)
     tickers = Table(Ticker.__tablename__, metadata, autoload=True, 
                     autoload_with=engine, schema=SCHEMA)
-#    holdings = Table(Holdings.__tablename__, metadata, autoload=True, 
-#                     autoload_with=engine, schema=SCHEMA)
+    holdings = Table(Holdings.__tablename__, metadata, autoload=True, 
+                     autoload_with=engine, schema=SCHEMA)
 #    equity = Table(Equity.__tablename__, metadata, autoload=True, 
 #                   autoload_with=engine, schema=SCHEMA)
 #    fixed_income = Table(FixedIncome.__tablename__, metadata, autoload=True, 
@@ -229,10 +233,10 @@ if __name__ == '__main__':
 
     # Generate Funds report
     etfs = etree.SubElement(report, 'funds', {'type': 'ETFs'})
-    etf_expense, etf_value = report_fund('ETF', etfs, fund)
+    etf_expense, etf_value, etf_symbols = report_fund('ETF', etfs, fund)
 
     mfs = etree.SubElement(report, 'funds', {'type': 'Mutual Funds'})
-    mf_expense, mf_value = report_fund('Mutual Fund', mfs, fund)
+    mf_expense, mf_value, mf_symbols = report_fund('Mutual Fund', mfs, fund)
 
     # Compute average expense ratio
     overall_expense = etf_expense * etf_value
@@ -249,8 +253,8 @@ if __name__ == '__main__':
                   .filter(tickers.columns.ticker.in_(symbols.keys()))\
                   .filter(tickers.columns.type=='Stock')\
                   .all()
-    if len(rows) > 0:
-        stk_val = report_security(equities, rows)
+    if len(rows) > 0: stk_val, equity_symbols = report_security(equities, rows)
+    else: equity_symbols = {}
 
     # Generate Options report        
     options = etree.SubElement(report, 'securities', {'type': 'Options'})
@@ -261,7 +265,8 @@ if __name__ == '__main__':
                              current_pos.columns.description)\
                       .filter(current_pos.columns.symbol.in_(option_symbols))\
                       .all()
-        opt_val = report_security(options, rows)
+        opt_val, option_symbols = report_security(options, rows)
+    else: option_symbols = {}
 
     # Generate Allocation Reports
     exclude = ['ticker', 'date']
@@ -302,6 +307,87 @@ if __name__ == '__main__':
         tav_lmnt.text = '%16.4f' % total_allocation_value
         rav_lmnt = etree.SubElement(allocation, 'proportion')
         rav_lmnt.text = '%16.4f' % relative_allocation_value
+
+    # Generate top fund equity holdings report
+    fund_symbols = {}
+    fund_symbols.update(etf_symbols)
+    fund_symbols.update(mf_symbols)
+    held_symbols = {}
+    max_date = func.max(holdings.columns.date).label('date')
+    distinct_cols = [holdings.columns.ticker]
+    for fund_symbol in fund_symbols:
+        fund_value = fund_symbols[fund_symbol]
+        top_symbols = [c for c in holdings.columns if 'symbol_' in c.name]
+        top_pcts = [c for c in holdings.columns if 'pct_of_net_' in c.name]
+        top_desc = [c for c in holdings.columns if 'description_' in c.name]
+        query_cols = top_symbols + top_pcts + top_desc
+        top_hld = session.query(max_date, *query_cols)\
+                         .distinct(*distinct_cols)\
+                         .filter(holdings.columns.ticker==fund_symbol)\
+                         .group_by(*(query_cols + distinct_cols))\
+                         .all()
+        if len(top_hld) > 1: raise Exception('Too many results from query.')
+        for i in range(1, 11):
+            hld_symbol = top_hld[0][i]
+            hld_pct = top_hld[0][i+10]
+            hld_desc = top_hld[0][i+20]
+            hld_value = fund_value * hld_pct/100
+            try:
+                held_symbols[(hld_symbol, hld_desc)][0] += hld_value
+                held_symbols[(hld_symbol, hld_desc)][1].append((fund_symbol, 
+                                                                hld_value))
+            except KeyError:
+                held_symbols[(hld_symbol, hld_desc)] = [hld_value,
+                                                        [(fund_symbol, 
+                                                          hld_value)]]
+    agg_holdings = etree.SubElement(report, 'aggregated_holdings')
+    agg_holdings_value = 0
+    for held_symbol in held_symbols:
+        try:
+            equity_symbol = held_symbol[0]
+            equity_value, equity_description = equity_symbols[equity_symbol]
+            del equity_symbols[equity_symbol]
+            held_symbols[held_symbol][0] += equity_value
+            held_symbols[held_symbol][1].append((equity_symbol, equity_value))
+        except KeyError:
+            held_symbols[held_symbol][1].sort(key=lambda x: x[1])
+        holding = etree.SubElement(agg_holdings, 'holding')
+        ticker = etree.SubElement(holding, 'ticker')
+        if equity_symbol: ticker.text = equity_symbol
+        desc = etree.SubElement(holding, 'description')
+        desc.text = held_symbol[1]
+        for held_by in held_symbols[held_symbol][1]:
+            held_by_lmnt = etree.SubElement(holding, 'held_by')
+            held_by_ticker = etree.SubElement(held_by_lmnt, 'ticker')
+            held_by_ticker.text = held_by[0]
+            held_by_value = etree.SubElement(held_by_lmnt, 'dollar_value')
+            held_by_value.text = '%16.4f' % held_by[1]
+        agg_holdings_value += held_symbols[held_symbol][0]
+        hld_val = etree.SubElement(holding, 'dollar_value')
+        hld_val.text = '%16.4f' % held_symbols[held_symbol][0]
+        hld_pct = etree.SubElement(holding, 'proportion')
+        hld_pct.text = '%16.4f' % (held_symbols[held_symbol][0]/current_value)
+    for equity_symbol in equity_symbols:
+        equity_value, equity_description = equity_symbols[equity_symbol]
+        holding = etree.SubElement(agg_holdings, 'holding')
+        ticker = etree.SubElement(holding, 'ticker')
+        ticker.text = equity_symbol
+        desc = etree.SubElement(holding, 'description')
+        desc.text = equity_description
+        held_by_lmnt = etree.SubElement(holding, 'held_by')
+        held_by_ticker = etree.SubElement(held_by_lmnt, 'ticker')
+        held_by_ticker.text = equity_symbol
+        held_by_value = etree.SubElement(held_by_lmnt, 'dollar_value')
+        held_by_value.text = '%16.4f' % equity_value
+        hld_val = etree.SubElement(holding, 'dollar_value')
+        hld_val.text = '%16.4f' % equity_value
+        hld_pct = etree.SubElement(holding, 'proportion')
+        hld_pct.text = '%16.4f' % (equity_value/current_value)
+        agg_holdings_value += equity_value
+    agg_value = etree.SubElement(agg_holdings, 'dollar_value')
+    agg_value.text = '%16.4f' % agg_holdings_value
+    agg_prop = etree.SubElement(agg_holdings, 'proportion')
+    agg_prop.text = '%16.4f' % (agg_holdings_value/current_value)
 
     # Store data in xml file
     with open('portfolio_allocations_%s.xml' % date, 'w') as xmlfile:

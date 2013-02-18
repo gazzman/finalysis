@@ -119,6 +119,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:apply-templates select="funds[@type='ETFs']"/>
     <xsl:apply-templates select="funds[@type='Mutual Funds']"/>
     <xsl:apply-templates select='allocation_reports'/>
+    <xsl:apply-templates select='aggregated_holdings'/>
 </xsl:template>
 
 <xsl:template match='allocation_reports'>
@@ -224,14 +225,64 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     </table>
 </xsl:template>
 
+<xsl:template match='aggregated_holdings'>
+    <h1 class='page'>Top Aggregated Holdings</h1>
+    <table class='sortable'>
+        <thead>
+            <tr>
+                <th class='category'>Symbol</th>
+                <th class='description'>Description</th>
+                <th class='description'>Held By/Value</th>
+                <th class='number'>Value</th>
+                <th class='number'>Proportion</th>
+            </tr>
+        </thead>
+        <tbody>
+            <xsl:apply-templates select='holding'>
+                <xsl:sort select="proportion" order='descending'/>
+            </xsl:apply-templates>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>Total</td>
+                <td></td>
+                <td></td>
+                <xsl:apply-templates select="dollar_value"/>
+                <xsl:apply-templates select="proportion"/>
+            </tr>
+        </tfoot>
+    </table>
+</xsl:template>
+
+<xsl:template match='holding'>
+    <tr>
+        <xsl:apply-templates select='ticker'/>
+        <xsl:apply-templates select='description'/>
+        <td>
+            <ul>
+                <xsl:apply-templates select='held_by'/>
+            </ul>
+        </td>
+        <xsl:apply-templates select='dollar_value'/>
+        <xsl:apply-templates select='proportion'/>
+    </tr>
+</xsl:template>
+
+<xsl:template match='held_by'>
+    <li>
+        <xsl:apply-templates select='ticker'/>
+        <xsl:apply-templates select='dollar_value'/>
+    </li>
+</xsl:template>
+
 <xsl:template match='category'>
     <xsl:choose>
         <xsl:when test="not(../@title='Sector Allocation' 
                      and (name='Cash Equivalent' or name='Commingled Fund'))">
             <tr>
                 <td><xsl:value-of select='name'/></td>
-                <xsl:apply-templates select='dollar_value'/>        
-                <xsl:apply-templates select='proportion'/>        
+                <xsl:apply-templates select='dollar_value'/>
+                <xsl:apply-templates select='proportion'/>
             </tr>
         </xsl:when>
     </xsl:choose>
