@@ -140,7 +140,7 @@ if __name__ == '__main__':
     description = 'A script that analyzes portfolio positions and allocations.'
     p = argparse.ArgumentParser(description=description)
     p.add_argument('db_name', type=str, help='name of the postgresql database')
-    p.add_argument('date', help='%%Y-%%m-%%d date from which to pull data')
+    p.add_argument('--date', help='%%Y-%%m-%%d date from which to pull data')
     p.add_argument('--schema', default=def_schema,
                    help="positions table schema; default is '%s'" % def_schema)
     args = p.parse_args()
@@ -181,15 +181,26 @@ if __name__ == '__main__':
     distinct_cols = ['id', 'symbol', 'description']
     distinct_cols = [c for c in positions.columns if c.name in distinct_cols]
     date_col = positions.columns.timestamp
+    id_col = positions.columns.id
     max_timestamp = func.max(date_col).label('timestamp')
     order = [positions.columns.id, positions.columns.symbol]
 
-    date = args.date
-    current_pos = session.query(max_timestamp, *pos_cols)\
-                         .distinct(*distinct_cols)\
-                         .group_by(*pos_cols)\
-                         .filter(func.to_char(date_col, 'YYYY-MM-DD')==date)\
-                         .subquery()
+    if args.date:
+        date = args.date
+        current_pos = session.query(max_timestamp, *pos_cols)\
+                             .distinct(*distinct_cols)\
+                             .group_by(*pos_cols)\
+                             .filter(func.to_char(date_col, 'YYYY-MM-DD')==date)\
+                             .subquery()
+    else:
+        date_ids = session.query(max_timestamp, id_col)\
+                          .group_by(id_col)\
+                          .subquery()
+        acc_id, ts = [date_ids.columns.id, date_ids.columns.timestamp]
+        date = session.query(func.max(ts)).all()[0][0].date().isoformat()
+        current_pos = session.query(positions)\
+                             .filter_by(id = acc_id, timestamp = ts)\
+                             .subquery()
 
     timestamps = session.query(current_pos.columns.timestamp)\
                         .order_by(current_pos.columns.timestamp)\
