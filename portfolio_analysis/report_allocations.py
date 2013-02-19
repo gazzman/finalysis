@@ -346,11 +346,13 @@ if __name__ == '__main__':
             try:
                 held_symbols[(hld_symbol, hld_desc)][0] += hld_value
                 held_symbols[(hld_symbol, hld_desc)][1].append((fund_symbol, 
-                                                                hld_value))
+                                                                hld_value,
+                                                                hld_pct))
             except KeyError:
                 held_symbols[(hld_symbol, hld_desc)] = [hld_value,
                                                         [(fund_symbol, 
-                                                          hld_value)]]
+                                                          hld_value,
+                                                          hld_pct)]]
     agg_holdings = etree.SubElement(report, 'aggregated_holdings')
     agg_holdings_value = 0
     for held_symbol in held_symbols:
@@ -359,7 +361,9 @@ if __name__ == '__main__':
             equity_value, equity_description = equity_symbols[equity_symbol]
             del equity_symbols[equity_symbol]
             held_symbols[held_symbol][0] += equity_value
-            held_symbols[held_symbol][1].append((equity_symbol, equity_value))
+            held_symbols[held_symbol][1].append((equity_symbol, 
+                                                 equity_value,
+                                                 1))
         except KeyError:
             held_symbols[held_symbol][1].sort(key=lambda x: x[1])
         holding = etree.SubElement(agg_holdings, 'holding')
@@ -373,6 +377,8 @@ if __name__ == '__main__':
             held_by_ticker.text = held_by[0]
             held_by_value = etree.SubElement(held_by_lmnt, 'dollar_value')
             held_by_value.text = '%16.4f' % held_by[1]
+            held_by_prop = etree.SubElement(held_by_lmnt, 'proportion')
+            held_by_prop.text = '%16.4f' % (held_by[2]/100)
         agg_holdings_value += held_symbols[held_symbol][0]
         hld_val = etree.SubElement(holding, 'dollar_value')
         hld_val.text = '%16.4f' % held_symbols[held_symbol][0]
@@ -390,6 +396,8 @@ if __name__ == '__main__':
         held_by_ticker.text = equity_symbol
         held_by_value = etree.SubElement(held_by_lmnt, 'dollar_value')
         held_by_value.text = '%16.4f' % equity_value
+        held_by_pct = etree.SubElement(held_by_lmnt, 'proportion')
+        held_by_pct.text = '%16.4f' % 1
         hld_val = etree.SubElement(holding, 'dollar_value')
         hld_val.text = '%16.4f' % equity_value
         hld_pct = etree.SubElement(holding, 'proportion')

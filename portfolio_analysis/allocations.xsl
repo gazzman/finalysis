@@ -51,6 +51,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             th.number {text-align: right}
             th.category {text-align: left}
             th.description {text-align: left}
+            ul {
+                list-style-type: none;
+                padding:0;
+                margin:4px;
+                }
         </style>
         <title>
             Portfolio Allocation as of <xsl:apply-templates select='report/date'/>
@@ -232,7 +237,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             <tr>
                 <th class='category'>Symbol</th>
                 <th class='description'>Description</th>
-                <th class='description'>Held By/Value</th>
+                <th align='left'>Held By | Value | Fund %</th>
                 <th class='number'>Value</th>
                 <th class='number'>Proportion</th>
             </tr>
@@ -258,7 +263,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <tr>
         <xsl:apply-templates select='ticker'/>
         <xsl:apply-templates select='description'/>
-        <td>
+        <td align='left'>
             <ul>
                 <xsl:apply-templates select='held_by'/>
             </ul>
@@ -270,8 +275,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
 <xsl:template match='held_by'>
     <li>
-        <xsl:apply-templates select='ticker'/>
-        <xsl:apply-templates select='dollar_value'/>
+        <tr>
+            <xsl:apply-templates select='ticker'/> | 
+            <xsl:apply-templates select='dollar_value'/> | 
+            <xsl:apply-templates select='proportion'/>
+        </tr>
     </li>
 </xsl:template>
 
