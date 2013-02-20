@@ -42,11 +42,14 @@ def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
 def gen_position_data(row, fieldmap, cashdesc=None):
     position_data = {}
     for field in row:
-        if fieldmap[field] in ['qty', 'price', 'total_value']: 
-            data = row[field].strip('$').replace(',','')
-            position_data[fieldmap[field]] = data
-        elif fieldmap[field]:           
-            position_data[fieldmap[field]] = row[field]
+        try:
+            if fieldmap[field] in ['qty', 'price', 'total_value']: 
+                data = row[field].strip('$').replace(',','')
+                position_data[fieldmap[field]] = data
+            elif fieldmap[field]:           
+                position_data[fieldmap[field]] = row[field]
+        except KeyError:
+            print 'There is no %s field in the fieldmap.' % field
     if 'cash' in position_data['symbol'].lower():
         position_data['symbol'] = 'USD'
         position_data['price'] = 1
