@@ -186,6 +186,7 @@ class Fund(Base):
     most_recent_capital_gain = Column(NUMERIC(19,4))
     most_recent_distribution = Column(NUMERIC(19,4))
     net_expense_ratio = Column(NUMERIC(19,4))
+    next_dividend_payment = Column(NUMERIC(19,4))
     next_pay_date = Column(Date)
     portfolio_turnover = Column(NUMERIC(19,4))
     premium_to_discount = Column(NUMERIC(19,4))
