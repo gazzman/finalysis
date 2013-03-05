@@ -140,8 +140,11 @@ if __name__ == "__main__":
         freq = 'd'
         tablename = 'yahoo_daily_prices'
 
+    if args.database and not have_alchemy:
+        raise EnvironmentError("Python is unable to import sqlalchemy")
+
     d = yd.grab_data(tickers, frequency=freq, from_date=args.fromdate)
-    if args.database and have_alchemy:
+    if args.database:
         dburl = 'postgresql+psycopg2:///' + args.database
         engine = create_engine(dburl)
         try: engine.execute(CreateSchema(args.schema))
@@ -175,8 +178,6 @@ if __name__ == "__main__":
         cur = conn.cursor()
         cur.copy_from(d, tablename, sep=',', null='', columns=headers)
         conn.commit()
-    elif args.database:
-        raise EnvironmentError("Python is unable to import sqlalchemy")
     else:
         to = datetime.now()
         fname = 'yprices_%s.csv' % to.strftime('%Y%m%dT%H%M%S')
