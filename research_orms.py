@@ -67,6 +67,7 @@ class CountryAllocation(Base):
     finland = Column(NUMERIC(19,4))
     france = Column(NUMERIC(19,4))
     germany = Column(NUMERIC(19,4))
+    ghana = Column(NUMERIC(19,4))
     hong_kong = Column(NUMERIC(19,4))
     india = Column(NUMERIC(19,4))
     indonesia = Column(NUMERIC(19,4))
