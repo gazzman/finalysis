@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from pytz import timezone
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import CHAR, NUMERIC, VARCHAR
@@ -31,6 +31,20 @@ class Position(Base):
     qty = Column(NUMERIC(17,4))
     price = Column(NUMERIC(16,3))
     total_value = Column(NUMERIC(16,3))
+
+class Transaction(Base):
+    __tablename__ = 'transactions'
+    __table_args__ = {'schema':SCHEMA}
+    id = Column(Integer, ForeignKey('%s.accounts.id' % SCHEMA),
+                primary_key=True, index=True)
+    date = Column(Date, primary_key=True, index=True)
+    symbol = Column(VARCHAR(21), primary_key=True, index=True)
+    description = Column(String, primary_key=True, index=True)
+    transaction = Column(String, primary_key=True, index=True)
+    qty = Column(NUMERIC(19,4))
+    price = Column(NUMERIC(19,4))
+    net_value = Column(NUMERIC(19,4))
+    commissions = Column(NUMERIC(19,4))
 
 def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
     tz = timezone(locale)
