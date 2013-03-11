@@ -26,7 +26,7 @@ from finalysis.research_orms import (Ticker,
                                      SectorAllocation,
                                      SCHEMA)
 
-XML_STYLESHEET = '<?xml-stylesheet type="text/xsl" href="allocations.xsl"?>'
+XML_STYLESHEET = '<?xml-stylesheet type="text/xsl" href="styles/allocations.xsl"?>'
 
 def weighted_value(weight, value):
     if weight: return weight * value / 100
