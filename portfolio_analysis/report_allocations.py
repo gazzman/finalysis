@@ -45,8 +45,7 @@ def report_fund(fund_type, parent_element, fund):
                          tickers.columns.description,
                          fund.columns.gross_expense_ratio,
                          fund.columns.net_expense_ratio)\
-                  .distinct(fund.columns.gross_expense_ratio, 
-                            fund.columns.ticker)\
+                  .distinct(fund.columns.ticker)\
                   .filter(fund.columns.ticker.in_(symbols.keys()))\
                   .filter(tickers.columns.ticker==fund.columns.ticker)\
                   .filter(tickers.columns.type==fund_type)\
@@ -54,8 +53,7 @@ def report_fund(fund_type, parent_element, fund):
                             tickers.columns.description,
                             fund.columns.gross_expense_ratio,
                             fund.columns.net_expense_ratio)\
-                  .order_by(fund.columns.gross_expense_ratio.desc(), 
-                            fund.columns.ticker).all()
+                  .order_by(fund.columns.ticker).all()
     avg_expense_ratio = 0
     total_fund_value = 0
     if len(rows) > 0:
@@ -143,11 +141,13 @@ if __name__ == '__main__':
     p.add_argument('--date', help='%%Y-%%m-%%d date from which to pull data')
     p.add_argument('--schema', default=def_schema,
                    help="positions table schema; default is '%s'" % def_schema)
+    p.add_argument('--host', default='',
+                   help="positions table schema; default is '%s'" % def_schema)
     args = p.parse_args()
     portfolio_schema = args.schema
 
     # Connect to db
-    dburl = 'postgresql+psycopg2:///' + args.db_name
+    dburl = 'postgresql+psycopg2://%s/%s' % (args.host, args.db_name)
     engine = create_engine(dburl)
     metadata = MetaData()
     Session = sessionmaker(bind=engine)
