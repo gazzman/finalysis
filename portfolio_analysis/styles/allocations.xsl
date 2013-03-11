@@ -4,7 +4,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/">
     <html>
     <head>
-        <script src="/cgi-bin/sorttable.js"></script>
+        <script src="/scripts/sorttable.js"></script>
         <style type="text/css">
             h1 {
                 font-size: 16px;
