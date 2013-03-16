@@ -141,8 +141,7 @@ if __name__ == '__main__':
     p.add_argument('--date', help='%%Y-%%m-%%d date from which to pull data')
     p.add_argument('--schema', default=def_schema,
                    help="positions table schema; default is '%s'" % def_schema)
-    p.add_argument('--host', default='',
-                   help="positions table schema; default is '%s'" % def_schema)
+    p.add_argument('--host', default='', help="host where db lives")
     args = p.parse_args()
     portfolio_schema = args.schema
 
