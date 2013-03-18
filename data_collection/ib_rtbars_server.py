@@ -45,6 +45,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
 
         timestamp, bar = parse_barline(barline.lower())
         bar_to_db(conn, table, symbol, timestamp, bar)
+        conn.close()
         logger.info('Wrote rt bar in %s.%s for %s at %s', schema, tablename, 
                                                           symbol, timestamp)
 
