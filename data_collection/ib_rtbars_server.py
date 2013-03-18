@@ -10,7 +10,7 @@ import threading
 
 from finalysis.data_collection.ibbars2db import *
 
-LOGLEVEL = logging.DEBUG
+LOGLEVEL = logging.INFO
 
 def cleanup(signal, frame):
     server.server_close()
