@@ -65,6 +65,7 @@ if __name__ == '__main__':
     # Start the server
     server = ForkedTCPServer((HOST, PORT), ForkedTCPRequestHandler)
     logger.warn('BAR2DB server started. Listeing on socket %s:%i', HOST, PORT)
+    logger.info('Format messages as "db_name, schema, fname_list, barline"')
     signal.signal(signal.SIGTERM, cleanup)
     signal.signal(signal.SIGINT, cleanup)
     server.serve_forever()
