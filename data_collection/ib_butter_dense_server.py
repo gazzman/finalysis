@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 
 from finalysis.butter_dense_orms import *
 
-LOGLEVEL = logging.DEBUG
+LOGLEVEL = logging.INFO
 
 class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
     pass
