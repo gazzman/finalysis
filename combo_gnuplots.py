@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import argparse
 import sys
 
 class GNUPlotBase():
@@ -123,13 +124,21 @@ class GNUPlotSpread(GNUPlotCombo):
         self.plot_combo_payoff([self.option1, self.option2], color)
 
 if __name__ == "__main__":
+    description = 'A utility for plotting option combo expiry payoffs.'
+    ofile_help = 'A space-delimited file of options to plot, one per line. '
+    ofile_help += "The format of each line is 'qty right strike'"
+
+    p = argparse.ArgumentParser(description=description)
+    p.add_argument('options_file', type=str, help=ofile_help)
+    args = p.parse_args()
+
     try:
         from Gnuplot import Gnuplot
     except ImportError:
         msg = 'Continuing without Gnuplot.py. Sending commands to stdout'
         print >> sys.stderr, msg
 
-    f = open(sys.argv[1], 'r')
+    f = open(args.options_file, 'r')
     options = []
     for line in f:
         options.append(GNUPlotOption(*line.split()))
