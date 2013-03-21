@@ -68,12 +68,12 @@ class GNUPlotOption(GNUPlotBase):
             self.itm_payoff = '%i*(%0.3f-t)' % (self.qty, self.strike)
 
     def is_itm_at(self, spot):
-        return spot > self.itm_interval[0] and spot < self.itm_interval[1]
+        return spot >= self.itm_interval[0] and spot < self.itm_interval[1]
 
     def payoff_at(self, spot):
-        if is_itm_at(spot):
-            if self.right == 'C': return spot - self.strike
-            if self.right == 'P': return self.strike - spot
+        if self.is_itm_at(spot):
+            if self.right == 'C': return self.qty*(spot - self.strike)
+            if self.right == 'P': return self.qty*(self.strike - spot)
         else: return 0
 
     def plot_option_payoff(self, color='blue'):
@@ -96,7 +96,6 @@ class GNUPlotCombo(GNUPlotBase):
             mid = (interval[1] + interval[0])/2
             payoff = ['0']
             payoff += [x.itm_payoff for x in options if x.is_itm_at(mid)]
-            print payoff
             commands.append(plotstr % (interval + ('+'.join(payoff), color)))
         return '\n'.join(commands)
 
@@ -154,36 +153,29 @@ if __name__ == "__main__":
         except IndexError:
             pass
     strikes = [x.strike for x in options]
-    strikes.sort()
+    max_payoff = 0
+    min_payoff = 0
+    for strike in strikes:
+        payoff = sum([x.payoff_at(strike) for x in options])
+        max_payoff = max(max_payoff, payoff)
+        min_payoff = min(min_payoff, payoff)
+
     c = GNUPlotCombo()
-    c.xmin = min(strikes)*.9
-    c.xmax = max(strikes)*1.1
-    spot0_payoff = sum([x.qty*x.strike for x in options if x.right == 'P'])
+    c.xmin = int(min(strikes)*.9)
+    c.xmax = int(max(strikes)*1.1)
+    spot0_payoff = sum([x.qty*(x.strike-c.xmin) for x in options if x.right == 'P'])
     spotinf_payoff = sum([x.qty*(c.xmax-x.strike) for x in options if x.right == 'C'])
-    try:
-        c.ymax = max(2*max([x[1] - x[0] for x in zip(strikes[:-1], strikes[1:])]),
-                     spot0_payoff, spotinf_payoff, 1)
-        c.ymin = min(2*max([x[1] - x[0] for x in zip(strikes[:-1], strikes[1:])]),
-                     spot0_payoff, spotinf_payoff, -1)
-        print c.ymax, c.ymin
-    except ValueError:
-        c.ymax = 1
-        c.ymin = -1
-#    if c.ymax > c.xmax or c.ymin < c.xmin:
-#        c.ymax = 2*max([x[1] - x[0] for x in zip(strikes[:-1], strikes[1:])])
-#        c.ymin = -1*c.ymax
-    tics = dict(zip(strikes, [None]*len(strikes))).keys()
-    tics.sort()
-    if len(tics) == 1:
-        xtics = [tics[0] - 1, tics[0], tics[0] + 1]
-        c.ymax = max(xtics) - xtics[1]
-        c.ymin = -1*c.ymax
-    else:
-        xtics = [c.xmin, min(strikes), c.xmax, max(strikes)]\
-               + [x for x in tics if tics.index(x) % 2 == 0]
-    ytics = [c.ymin + (c.ymax-c.ymin)/10.0*x for x in range(0, 11)]
-    c.ymax = max(ytics)*1.1
-    c.ymin = min(ytics)*1.1 
+    c.ymax = max(spot0_payoff, spotinf_payoff, max_payoff, 1)
+    c.ymin = min(spot0_payoff, spotinf_payoff, min_payoff, -1)
+
+    xtics = dict(zip(strikes, [None]*len(strikes))).keys()
+    xtics.sort()
+    xtics = [c.xmin] + [x for x in xtics if xtics.index(x) % 2 == 0] + [c.xmax]
+    if c.ymax > -1*c.ymin: c.ymin = -1*c.ymax
+    else: c.ymax = -1*c.ymin
+    ytics = [c.ymax/5.0*x for x in range(-5, 6)]
+    c.ymax = c.ymax*1.1
+    c.ymin = c.ymin*1.1
 
     the_plot = []
     the_plot.append(c.set_output())
