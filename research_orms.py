@@ -420,6 +420,7 @@ class FixedIncome(Base):
     municipal_taxable = Column(NUMERIC(19,4))
     non_agency_residential_mortgage_backed = Column(NUMERIC(19,4))
     not_rated = Column(NUMERIC(19,4))
+    option_to_warrant = Column(NUMERIC(19,4))
     preferred_stock = Column(NUMERIC(19,4))
     range_1_3_years = Column(NUMERIC(19,4))
     range_10_15_years = Column(NUMERIC(19,4))
