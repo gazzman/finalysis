@@ -136,6 +136,8 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser(description=description)
     p.add_argument('options_file', type=str, help=ofile_help)
+    p.add_argument('-p', action='store_true', 
+                   help='send commands to stdout')
     args = p.parse_args()
 
     try:
@@ -194,3 +196,4 @@ if __name__ == "__main__":
         raw_input('Press ENTER to close plot')
     except NameError:
         print the_plot
+    if args.p: print the_plot
