@@ -190,10 +190,11 @@ if __name__ == "__main__":
             the_plot.append(option.plot_option_payoff(color='blue'))
     the_plot.append(c.plot_combo_payoff(options, 'black'))
     the_plot = '\n'.join(the_plot)
-    try:
-        g = Gnuplot()
-        g(the_plot)
-        raw_input('Press ENTER to close plot')
-    except NameError:
-        print the_plot
     if args.p: print the_plot
+    else:
+        try:
+            g = Gnuplot()
+            g(the_plot)
+            raw_input('Press ENTER to close plot')
+        except NameError:
+            print the_plot
