@@ -164,6 +164,7 @@ class Fund(Base):
     _52_week_range = Column(String)
     actively_managed = Column(String)
     avg_volume_10_day = Column(Integer)
+    average_yield_to_maturity = Column(NUMERIC(19,4))
     capital_gain_ex_date = Column(Date)
     category_average = Column(NUMERIC(19,4))
     change = Column(String)
