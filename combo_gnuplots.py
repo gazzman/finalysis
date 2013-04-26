@@ -136,6 +136,7 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser(description=description)
     p.add_argument('options_file', type=str, help=ofile_help)
+    p.add_argument('-f', action='store', help='save as jpeg filename')
     p.add_argument('-p', action='store_true', 
                    help='send commands to stdout')
     args = p.parse_args()
@@ -180,7 +181,7 @@ if __name__ == "__main__":
     c.ymin = c.ymin*1.1
 
     the_plot = []
-    the_plot.append(c.set_output())
+    the_plot.append(c.set_output(fname=args.f))
     the_plot.append(c.gen_header())
     the_plot.append(c.gen_ticks(xtics, ytics))
     for option in options:
