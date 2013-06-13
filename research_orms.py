@@ -32,7 +32,9 @@ class Ticker(Base):
 class AssetAllocation(Base):
     __tablename__ = 'asset_allocation'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA), 
+    ticker = Column(VARCHAR(21),
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'), 
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     pct_long_bond = Column(NUMERIC(19,4))
@@ -47,7 +49,9 @@ class AssetAllocation(Base):
 class CountryAllocation(Base):
     __tablename__ = 'country_allocation'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA), 
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'), 
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     argentina = Column(NUMERIC(19,4))
@@ -104,7 +108,9 @@ class CountryAllocation(Base):
 class MktCapAllocation(Base):
     __tablename__ = 'mkt_cap_allocation'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA),
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'),
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     giant_cap = Column(NUMERIC(19,4))
@@ -116,7 +122,9 @@ class MktCapAllocation(Base):
 class RegionAllocation(Base):
     __tablename__ = 'region_allocation'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA),
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'),
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     africa = Column(NUMERIC(19,4))
@@ -136,7 +144,9 @@ class RegionAllocation(Base):
 class SectorAllocation(Base):
     __tablename__ = 'sector_allocation'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA),
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'),
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     cash_equivalent = Column(NUMERIC(19,4))
@@ -155,7 +165,9 @@ class SectorAllocation(Base):
 class Fund(Base):
     __tablename__ = 'fund'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA), 
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'), 
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     _1_month_change = Column(NUMERIC(19,4))
@@ -210,7 +222,9 @@ class Fund(Base):
 class Holdings(Base):
     __tablename__ = 'holdings'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA),
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'),
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     description_1 = Column(String)
@@ -287,7 +301,9 @@ class Holdings(Base):
 class Equity(Base):
     __tablename__ = 'equity'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA), 
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'), 
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     _52_week_range = Column(String)
@@ -392,7 +408,9 @@ class Equity(Base):
 class FixedIncome(Base):
     __tablename__ = 'fixed_income'
     __table_args__ = {'schema':SCHEMA}
-    ticker = Column(VARCHAR(21), ForeignKey('%s.tickers.ticker' % SCHEMA), 
+    ticker = Column(VARCHAR(21), 
+                    ForeignKey('%s.tickers.ticker' % SCHEMA, 
+                               onupdate='cascade'), 
                     primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     a = Column(NUMERIC(19,4))
