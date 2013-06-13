@@ -23,7 +23,9 @@ class Account(Base):
 class Position(Base):
     __tablename__ = 'positions'
     __table_args__ = {'schema':SCHEMA}
-    id = Column(Integer, ForeignKey('%s.accounts.id' % SCHEMA),
+    id = Column(Integer, 
+                ForeignKey('%s.accounts.id' % SCHEMA, 
+                                    onupdate='cascade'),
                 primary_key=True, index=True)
     timestamp = Column(DateTime(timezone=True), primary_key=True, index=True)
     symbol = Column(VARCHAR(21), primary_key=True, index=True)
@@ -35,7 +37,9 @@ class Position(Base):
 class Transaction(Base):
     __tablename__ = 'transactions'
     __table_args__ = {'schema':SCHEMA}
-    id = Column(Integer, ForeignKey('%s.accounts.id' % SCHEMA),
+    id = Column(Integer, 
+                ForeignKey('%s.accounts.id' % SCHEMA, 
+                           onupdate='cascade'),
                 primary_key=True, index=True)
     date = Column(Date, primary_key=True, index=True)
     symbol = Column(VARCHAR(21), primary_key=True, index=True)
