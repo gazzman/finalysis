@@ -39,7 +39,8 @@ class Ticker(Base):
 
 class UnderlyingPrice(Base):
     __tablename__ = 'underlying_prices'
-    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'),
+    ticker = Column(VARCHAR(6), 
+                    ForeignKey('tickers.ticker', onupdate='cascade'),
                     primary_key=True, index=True)
     date = Column(DATE, primary_key=True)
     time = Column(Time(timezone=True), primary_key=True)
@@ -57,7 +58,9 @@ class UnderlyingPrice(Base):
 class OptionContract(Base):
     __tablename__ = 'option_contracts'
     id = Column(INTEGER, primary_key=True)
-    ticker = Column(VARCHAR(6), ForeignKey('tickers.ticker'), index=True)
+    ticker = Column(VARCHAR(6), 
+                    ForeignKey('tickers.ticker', onupdate='cascade'),
+                    index=True)
     expiry = Column(DATE, index=True)
     call_put = Column(CHAR(1))
     strike = Column(NUMERIC(8,3), index=True)
@@ -66,7 +69,7 @@ class OptionContract(Base):
 
 class OptionPrice(Base):
     __tablename__ = 'option_prices'
-    id = Column(INTEGER, ForeignKey('option_contracts.id'), 
+    id = Column(INTEGER, ForeignKey('option_contracts.id', onupdate='cascade'), 
                 primary_key=True, index=True)
     date = Column(DATE, primary_key=True)
     time = Column(Time(timezone=True), primary_key=True)
