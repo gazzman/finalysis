@@ -86,9 +86,9 @@ class YahooData:
         count = 1
         while count < MAX_RETRY:
             if 4 < count:
-                print ' '.join(["\nOk, we're on try", str(count),
-                                "now.\nWhy don't you see if this url,",
-                                url, "is even working?"])
+                msg1 = "\nWe're on try %i now." % count
+                msg2 = "\nWhy don't you see if this url, %s, is working?" % url
+                print >> sys.stderr, msg1, msg2
             try:
                 page = urllib2.urlopen(req)
                 return page
