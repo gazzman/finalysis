@@ -30,7 +30,9 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         data = [x.strip() for x in message.split(',')]
         db_name, schema, tablename, links, right = data[0:5]
         row = dict([x.split('=') for x in data[5:] if 'None' not in x])
-        for k in ['underlying', 'strike_interval', 'timestamp']:
+
+        # Check to make sure we have primary key data
+        for k in ['underlying', 'timestamp', 'strike_start', 'strike_interval']:
             try:
                 assert k in row
             except AssertionError:
@@ -54,7 +56,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                           schema=schema)
         metadata.create_all()
 
-        # Insert row into table
+        # Insert or update row in table
         try:
             conn.execute(table.insert(), **row)
             logger.debug('Inserted db with %s' % message)
@@ -62,8 +64,9 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
             if 'duplicate key' in str(err):
                 upd = table.update()\
                            .where(table.c.underlying==row['underlying'])\
-                           .where(table.c.strike_interval==row['strike_interval'])\
-                           .where(table.c.timestamp==row['timestamp'])
+                           .where(table.c.timestamp==row['timestamp'])\
+                           .where(table.c.strike_interval==row['strike_start'])\
+                           .where(table.c.strike_interval==row['strike_interval'])
                 conn.execute(upd, **row)
                 logger.debug('Updated db with %s' % message)
             else: raise(err)
