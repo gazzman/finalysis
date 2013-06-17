@@ -21,7 +21,7 @@ def gen_table(tablename, metadata, links=16, right='b', schema=None):
     
     shows = ['%s_%s' % (sh, ohlc) for sh in ['trades', 'bid', 'ask'] 
                                   for ohlc in ['open', 'high', 'low', 
-                                               'close', 'hasGaps']]
+                                               'close', 'hasgaps']]
     shows += ['volume', 'wap', 'count']
 
     undercols = [Column(sh, NUMERIC(19, 4)) for sh in shows]
