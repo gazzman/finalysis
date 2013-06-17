@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.schema import CreateSchema
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 
-from finalysis.option_chain_orms import *
+from finalysis.option_chain_orms import gen_table
 
 LOGLEVEL = logging.INFO
 
@@ -32,15 +32,15 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         row = dict([x.split('=') for x in data[5:] if 'None' not in x])
 
         # Check to make sure we have primary key data
-        for k in ['underlying', 'timestamp', 'strike_start', 'strike_interval']:
+        for k in ['underlying', 'timestamp', 'strike_start', 'expiry',
+                  'strike_interval']:
             try:
                 assert k in row
             except AssertionError:
                 logger.error('%s not in row data', k)
                 return False
-                
         row['timestamp'] = add_timezone(*row['timestamp'].split())
-        
+
         # Connect to db
         logger.debug('Connecting to db %s', db_name)
         dburl = 'postgresql+psycopg2:///%s' % (db_name)
@@ -59,16 +59,17 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         # Insert or update row in table
         try:
             conn.execute(table.insert(), **row)
-            logger.debug('Inserted db with %s' % message)
+            logger.debug('Inserted %s' % message)
         except IntegrityError as err:
             if 'duplicate key' in str(err):
                 upd = table.update()\
                            .where(table.c.underlying==row['underlying'])\
                            .where(table.c.timestamp==row['timestamp'])\
                            .where(table.c.strike_interval==row['strike_start'])\
+                           .where(table.c.strike_interval==row['expiry'])\
                            .where(table.c.strike_interval==row['strike_interval'])
                 conn.execute(upd, **row)
-                logger.debug('Updated db with %s' % message)
+                logger.debug('Updated %s' % message)
             else: raise(err)
         conn.close()
         logger.info('Wrote data in %s.%s for %s at %s', schema, tablename, 
