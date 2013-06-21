@@ -3,6 +3,13 @@ from sqlalchemy import Table
 from sqlalchemy import Column, Date, DateTime
 from sqlalchemy.dialects.postgresql import NUMERIC, VARCHAR
 
+BAR = ('open', 'high', 'low', 'close', 'hasgaps')
+SHOWTUPLE = [('trades', BAR + ('volume', 'wap', 'count')),
+             ('bid', BAR),
+             ('ask', BAR)]
+SHOWCOLS = ['%s_%s' % (show[0], bar) for show in SHOWTUPLE for bar in show[1]]
+
+
 def gen_table(tablename, metadata, links=16, right='b', schema=None):
     '''Generate an option chain table
 
@@ -18,15 +25,12 @@ def gen_table(tablename, metadata, links=16, right='b', schema=None):
 
     if right == 'b': rights = ['c', 'p']
     else: rights = [right]    
-    
-    shows = ['%s_%s' % (sh, ohlc) for sh in ['trades', 'bid', 'ask'] 
-                                  for ohlc in ['open', 'high', 'low', 
-                                               'close', 'hasgaps']]
-    shows += ['volume', 'wap', 'count']
 
-    undercols = [Column(sh, NUMERIC(19, 4)) for sh in shows]
+
+    undercols = [Column(sh, NUMERIC(19, 4)) for sh in SHOWCOLS]
     linkcols = [Column('%s_%s_%s' % (cp, n, show), NUMERIC(19, 4)) 
-                for cp in rights  for n in range(0, links+1) for show in shows]
+                for cp in rights  for n in range(0, links+1) 
+                for show in SHOWCOLS]
     datacols = undercols + linkcols
     return Table(tablename, metadata,
                  Column('underlying', VARCHAR(21), index=True, 
