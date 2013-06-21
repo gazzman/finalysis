@@ -18,6 +18,8 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from finalysis.option_chain_orms import gen_table
 
 LOGLEVEL = logging.INFO
+PKEY = ['underlying', 'osi_underlying', 'timestamp', 'strike_start', 'expiry', 
+        'strike_interval']
 
 class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
     pass
@@ -32,8 +34,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         row = dict([x.split('=') for x in data[5:] if 'None' not in x])
 
         # Check to make sure we have primary key data
-        for k in ['underlying', 'timestamp', 'strike_start', 'expiry',
-                  'strike_interval']:
+        for k in PKEY:
             try:
                 assert k in row
             except AssertionError:
@@ -52,24 +53,28 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         try: engine.execute(CreateSchema(schema))
         except ProgrammingError: pass
         metadata = MetaData(engine)
-        table = gen_table(tablename, metadata, links=links, right=right, 
+        table = gen_table(tablename, metadata, links=int(links), right=right, 
                           schema=schema)
-        metadata.create_all()
+        try: metadata.create_all()
+        except (ProgrammingError, IntegrityError) as err: logger.error(err)
 
         # Insert or update row in table
         try:
             conn.execute(table.insert(), **row)
-            logger.debug('Inserted %s' % message)
+            logger.info('Inserted %s', row)
         except IntegrityError as err:
             if 'duplicate key' in str(err):
-                upd = table.update()\
+                key = dict([(k, v) for k, v in row.items() if k in PKEY])
+                data = dict([(k, v) for k, v in row.items() if k not in PKEY])
+                upd = table.update(values=data)\
                            .where(table.c.underlying==row['underlying'])\
+                           .where(table.c.osi_underlying==row['osi_underlying'])\
                            .where(table.c.timestamp==row['timestamp'])\
-                           .where(table.c.strike_interval==row['strike_start'])\
-                           .where(table.c.strike_interval==row['expiry'])\
+                           .where(table.c.strike_start==row['strike_start'])\
+                           .where(table.c.expiry==row['expiry'])\
                            .where(table.c.strike_interval==row['strike_interval'])
-                conn.execute(upd, **row)
-                logger.debug('Updated %s' % message)
+                conn.execute(upd)
+                logger.info('Updated %s with %s', key, data)
             else: raise(err)
         conn.close()
         logger.info('Wrote data in %s.%s for %s at %s', schema, tablename, 
