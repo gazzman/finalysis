@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from sqlalchemy import Table
-from sqlalchemy import Column, Date, DateTime
+from sqlalchemy import Boolean, Column, Date, DateTime
 from sqlalchemy.dialects.postgresql import NUMERIC, VARCHAR
 
 BAR = ('open', 'high', 'low', 'close', 'hasgaps')
@@ -19,23 +19,35 @@ def gen_table(tablename, metadata, links=16, right='b', schema=None):
     right       -- 'c'all, 'p'ut, or 'b'oth
     schema      -- the schema in which the table resides
     '''
-    assert links <= 16
-    assert links % 1 == 0
+    assert links > 0
+    assert type(links) == int
     assert right in ['c', 'p', 'b']
 
     if right == 'b': rights = ['c', 'p']
     else: rights = [right]    
 
+#    undercols = [Column(sh, NUMERIC(19, 4)) for sh in SHOWCOLS]
+#    linkcols = [Column('%s_%02i_%s' % (cp, n, sh), NUMERIC(19, 4)) 
+#                for cp in rights  for n in range(0, links+1) 
+#                for sh in SHOWCOLS]
+    undercols = []
+    for sh in SHOWCOLS:
+        if 'hasgaps' not in sh: undercols += [Column(sh, NUMERIC(19, 4))]
+        else: undercols += [Column(sh, Boolean)]
+    linkcols = []
+    for cp in rights:
+        for n in range(0, links):
+            for sh in SHOWCOLS:
+                c = '%s_%02i_%s' % (cp, n, sh)
+                if 'hasgaps' not in sh: linkcols += [Column(c, NUMERIC(19, 4))]
+                else: linkcols += [Column(c, Boolean)]
 
-    undercols = [Column(sh, NUMERIC(19, 4)) for sh in SHOWCOLS]
-    linkcols = [Column('%s_%s_%s' % (cp, n, show), NUMERIC(19, 4)) 
-                for cp in rights  for n in range(0, links+1) 
-                for show in SHOWCOLS]
     datacols = undercols + linkcols
     return Table(tablename, metadata,
-                 Column('underlying', VARCHAR(21), index=True, 
+                 Column('underlying', VARCHAR(21), index=True,
                         primary_key=True),
-                 Column('osi_underlying', VARCHAR(21)),
+                 Column('osi_underlying', VARCHAR(21), index=True, 
+                        primary_key=True),
                  Column('timestamp', DateTime(timezone=True), index=True, 
                         primary_key=True),
                  Column('strike_start', NUMERIC(19,4), index=True, 
