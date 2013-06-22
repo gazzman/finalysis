@@ -27,8 +27,8 @@ class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
 class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         # Parse message
-        logger.debug('Message received')
         message = self.request.recv(1024).strip()
+        logger.debug('Message received: %s', message)
         data = [x.strip() for x in message.split(',')]
         db_name, schema, tablename, links, right = data[0:5]
         row = dict([x.split('=') for x in data[5:] if 'None' not in x])
@@ -41,6 +41,8 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                 logger.error('%s not in row data', k)
                 return False
         row['timestamp'] = add_timezone(*row['timestamp'].split())
+        key = ['%s=%s' % item for item in row.items() if k in PKEY]
+        logger.debug('Data is %s', row)
 
         # Connect to db
         logger.debug('Connecting to db %s', db_name)
@@ -61,10 +63,9 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         # Insert or update row in table
         try:
             conn.execute(table.insert(), **row)
-            logger.info('Inserted %s', row)
+            logger.debug('Inserted %s', row)
         except IntegrityError as err:
             if 'duplicate key' in str(err):
-                key = dict([(k, v) for k, v in row.items() if k in PKEY])
                 data = dict([(k, v) for k, v in row.items() if k not in PKEY])
                 upd = table.update(values=data)\
                            .where(table.c.underlying==row['underlying'])\
@@ -77,9 +78,8 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                 logger.info('Updated %s with %s', key, data)
             else: raise(err)
         conn.close()
-        logger.info('Wrote data in %s.%s for %s at %s', schema, tablename, 
-                                                        row['underlying'],
-                                                        row['timestamp'])
+        logger.debug('Closed connection to db %s', db_name)
+        logger.info('Wrote data in %s.%s for %s', schema, tablename, key)
 
 def add_timezone(date, time, locale='US/Eastern', fmt='%Y%m%d %H:%M:%S'):
     tz = timezone(locale)
