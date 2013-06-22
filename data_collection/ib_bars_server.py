@@ -47,7 +47,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         bar_to_db(conn, table, symbol, timestamp, bar)
         conn.close()
         logger.info('Wrote bar in %s.%s for %s at %s', schema, tablename, 
-                                                          symbol, timestamp)
+                                                       symbol, timestamp)
 
 if __name__ == '__main__':
     HOST = sys.argv[1]
