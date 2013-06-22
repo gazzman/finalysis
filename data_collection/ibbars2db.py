@@ -33,8 +33,14 @@ def parse_barline(line):
 def bar_to_db(conn, table, symbol, timestamp, bar):
     try:
         conn.execute(table.insert(), ticker=symbol, timestamp=timestamp, **bar)
+        logger.debug('Inserted %s', **bar)
     except IntegrityError as err:
-        if 'duplicate key' in str(err): pass
+        if 'duplicate key' in str(err):
+            upd = table.update(values=bar)\
+                       .where(table.c.ticker==symbol)\
+                       .where(table.c.timestamp==timestamp)
+            conn.execute(upd)
+            logger.info('Updated %s, %s with %s', symbol, timestamp, data)
         else: raise(err)
 
 def gen_table(tablename, metadata, schema=None):
