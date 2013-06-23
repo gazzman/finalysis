@@ -80,7 +80,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
             if 'duplicate key' in str(err):
                 data = dict([(k, v) for k, v in row.items() if k not in PKEY])
                 upd = table.update(values=data)\
-                           .where(table.c.underlying==row['symbol'])\
+                           .where(table.c.symbol==row['symbol'])\
                            .where(table.c.timestamp==row['timestamp'])
                 conn.execute(upd)
                 logger.info('Updated %s with %s', key, data)
