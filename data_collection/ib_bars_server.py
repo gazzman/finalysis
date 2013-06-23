@@ -42,8 +42,9 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                 return False
 
         # Add timezone info to the timestamp
-        try:                
-            row['timestamp'] = add_timezone(*row['timestamp'].split())
+        try:
+            date, time = row['timestamp'].split()
+            row['timestamp'] = add_timezone(date, time)
         except ValueError:
             return False
 
