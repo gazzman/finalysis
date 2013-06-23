@@ -46,8 +46,12 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
             date, time = row['timestamp'].split()
             row['timestamp'] = add_timezone(date, time)
         except ValueError:
-            logger.error('date format error: %s', row['timestamp'])
-            return False
+            try: 
+                row['timestamp'] = add_timezone(row['timestamp'], '16:00:00')
+            except ValueError:
+                logger.error('date format error: %s', row['timestamp'])
+                return False 
+        
 
         # Extract the primary key
         key = ['%s=%s' % item for item in row.items() if k in PKEY]
