@@ -10,7 +10,7 @@ import signal
 import sys
 import threading
 
-from pytz import timezone
+from pytz import timezone, UnknownTimeZoneError
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.schema import CreateSchema
 from sqlalchemy.exc import IntegrityError, ProgrammingError
@@ -44,7 +44,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         # Add timezone info to the timestamp
         try:                
             row['timestamp'] = add_timezone(*row['timestamp'].split())
-        except ValueError:
+        except ValueError, UnknownTimeZoneError:
             return False
 
         # Extract the primary key
