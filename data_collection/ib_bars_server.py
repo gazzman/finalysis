@@ -83,7 +83,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                            .where(table.c.symbol==row['symbol'])\
                            .where(table.c.timestamp==row['timestamp'])
                 conn.execute(upd)
-                logger.info('Updated %s with %s', key, data)
+                logger.debug('Updated %s with %s', key, data)
             else: raise(err)
         conn.close()
         logger.debug('Closed connection to db %s', db_name)
