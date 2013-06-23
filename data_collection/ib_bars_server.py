@@ -54,7 +54,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         
 
         # Extract the primary key
-        key = ['%s=%s' % item for item in row.items() if k in PKEY]
+        key = ['%s=%s' % (k, v) for k, v in row.items() if k in PKEY]
         logger.debug('Data is %s', row)
 
         # Connect to db
