@@ -3,19 +3,23 @@ __version__ = ".00"
 __author__ = "gazzman"
 __copyright__ = "(C) 2013 gazzman GNU GPL 3."
 __contributors__ = []
+from datetime import datetime
 import SocketServer
 import logging
 import signal
+import sys
 import threading
 
-from finalysis.data_collection.ibbars2db import *
+from pytz import timezone
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.schema import CreateSchema
+from sqlalchemy.exc import IntegrityError, ProgrammingError
+
+from finalysis.bar_orms import gen_table
 
 LOGLEVEL = logging.INFO
+PKEY = ['symbol', 'timestamp']
 
-def cleanup(signal, frame):
-    server.server_close()
-    logger.warn('BAR2DB server shutdown')
-    sys.exit(0)
 
 class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
     pass
@@ -23,11 +27,29 @@ class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
 class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         # Parse message
-        logger.debug('Message received')
         message = self.request.recv(1024).strip()
+        logger.debug('Message received')
         data = [x.strip() for x in message.split(',')]
-        db_name, schema, fname_list, barline = data[0], data[1], data[2:3], data[3]
-        datafile, tablename, symbol = parse_fname_list(fname_list)
+        db_name, schema, tablename = data[0:3]
+        row = dict([x.split('=') for x in data[3:] if 'None' not in x])
+
+        # Check to make sure we have primary key data
+        for k in PKEY:
+            try:
+                assert k in row
+            except AssertionError:
+                logger.error('%s not in row data', k)
+                return False
+
+        # Add timezone info to the timestamp
+        try:                
+            row['timestamp'] = add_timezone(*row['timestamp'].split())
+        except ValueError:
+            return False
+
+        # Extract the primary key
+        key = ['%s=%s' % item for item in row.items() if k in PKEY]
+        logger.debug('Data is %s', row)
 
         # Connect to db
         logger.debug('Connecting to db %s', db_name)
@@ -41,13 +63,37 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         except ProgrammingError: pass
         metadata = MetaData(engine)
         table = gen_table(tablename, metadata, schema=schema)
-        metadata.create_all()
+        try: metadata.create_all()
+        except (ProgrammingError, IntegrityError) as err: logger.error(err)
 
-        timestamp, bar = parse_barline(barline.lower())
-        bar_to_db(conn, table, symbol, timestamp, bar)
+        # Insert or update row in table
+        try:
+            conn.execute(table.insert(), **row)
+            logger.debug('Inserted %s', row)
+        except IntegrityError as err:
+            if 'duplicate key' in str(err):
+                data = dict([(k, v) for k, v in row.items() if k not in PKEY])
+                upd = table.update(values=data)\
+                           .where(table.c.underlying==row['symbol'])\
+                           .where(table.c.timestamp==row['timestamp'])
+                conn.execute(upd)
+                logger.info('Updated %s with %s', key, data)
+            else: raise(err)
         conn.close()
-        logger.info('Wrote bar in %s.%s for %s at %s', schema, tablename, 
-                                                       symbol, timestamp)
+        logger.debug('Closed connection to db %s', db_name)
+        logger.info('Wrote data in %s.%s for %s', schema, tablename, key)
+
+def add_timezone(date, time, locale='US/Eastern', fmt='%Y%m%d %H:%M:%S'):
+    tz = timezone(locale)
+    dt = ' '.join([date, time])
+    dt = datetime.strptime(dt, fmt)
+    tzone = tz.tzname(dt)
+    return ' '.join([dt.date().isoformat(), dt.time().isoformat(), tzone])
+
+def cleanup(signal, frame):
+    server.server_close()
+    logger.warn('BAR2DB server shutdown')
+    sys.exit(0)
 
 if __name__ == '__main__':
     HOST = sys.argv[1]
@@ -66,7 +112,7 @@ if __name__ == '__main__':
     # Start the server
     server = ForkedTCPServer((HOST, PORT), ForkedTCPRequestHandler)
     logger.warn('BAR2DB server started. Listeing on socket %s:%i', HOST, PORT)
-    logger.info('Format messages as "db_name, schema, fname_list, barline"')
+    logger.info('Format messages as "db_name, schema, tablename, bar"')
     signal.signal(signal.SIGTERM, cleanup)
     signal.signal(signal.SIGINT, cleanup)
     server.serve_forever()
