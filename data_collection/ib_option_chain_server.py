@@ -40,7 +40,13 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
             except AssertionError:
                 logger.error('%s not in row data', k)
                 return False
-        row['timestamp'] = add_timezone(*row['timestamp'].split())
+        # Add timezone info to the timestamp
+        try:
+            date, time = row['timestamp'].split()
+            row['timestamp'] = add_timezone(date, time)
+        except ValueError:
+            logger.error('date format error: %s', row['timestamp'])
+            return False 
         key = ['%s=%s' % item for item in row.items() if k in PKEY]
         logger.debug('Data is %s', row)
 
