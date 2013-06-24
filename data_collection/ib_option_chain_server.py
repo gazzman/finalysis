@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError, ProgrammingError
 from finalysis.option_chain_orms import gen_table
 
 LOGLEVEL = logging.INFO
-PKEY = ['underlying', 'osi_underlying', 'timestamp', 'strike_start', 'expiry', 
+PKEY = ['underlying', 'osi_underlying', 'timestamp', 'expiry', 
         'strike_interval']
 
 class ForkedTCPServer(SocketServer.ForkingMixIn, SocketServer.TCPServer):
@@ -71,7 +71,6 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                            .where(table.c.underlying==row['underlying'])\
                            .where(table.c.osi_underlying==row['osi_underlying'])\
                            .where(table.c.timestamp==row['timestamp'])\
-                           .where(table.c.strike_start==row['strike_start'])\
                            .where(table.c.expiry==row['expiry'])\
                            .where(table.c.strike_interval==row['strike_interval'])
                 conn.execute(upd)
