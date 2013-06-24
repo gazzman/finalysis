@@ -80,7 +80,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
                            .where(table.c.expiry==row['expiry'])\
                            .where(table.c.strike_interval==row['strike_interval'])
                 conn.execute(upd)
-                logger.info('Updated %s with %s', key, data)
+                logger.debug('Updated %s with %s', key, data)
             else: raise(err)
         conn.close()
         logger.debug('Closed connection to db %s', db_name)
