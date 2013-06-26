@@ -72,15 +72,15 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
             logger.debug('Inserted %s', row)
         except IntegrityError as err:
             if 'duplicate key' in str(err):
-                data = dict([(k, v) for k, v in row.items() if k not in PKEY])
-                upd = table.update(values=data)\
+                bar = dict([(k, v) for k, v in row.items() if k not in PKEY])
+                upd = table.update(values=bar)\
                            .where(table.c.underlying==row['underlying'])\
                            .where(table.c.osi_underlying==row['osi_underlying'])\
                            .where(table.c.timestamp==row['timestamp'])\
                            .where(table.c.expiry==row['expiry'])\
                            .where(table.c.strike_interval==row['strike_interval'])
                 conn.execute(upd)
-                logger.debug('Updated %s with %s', key, data)
+                logger.debug('Updated %s with %s', key, bar)
             else: raise(err)
         conn.close()
         logger.debug('Closed connection to db %s', db_name)
