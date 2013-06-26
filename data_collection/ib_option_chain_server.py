@@ -47,7 +47,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         except ValueError:
             logger.error('date format error: %s', row['timestamp'])
             return False 
-        key = ['%s=%s' % item for item in row.items() if k in PKEY]
+        key = ['%s=%s' % (k, v) for k, v in row.items() if k in PKEY]
         logger.debug('Data is %s', row)
 
         # Connect to db
@@ -84,7 +84,8 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
             else: raise(err)
         conn.close()
         logger.debug('Closed connection to db %s', db_name)
-        logger.info('Wrote data in %s.%s for %s', schema, tablename, key)
+        logger.info('Wrote data in %s.%s for %s %s', schema, tablename, 
+                                                     key, data[-1][0:8])
 
 def add_timezone(date, time, locale='US/Eastern', fmt='%Y%m%d %H:%M:%S'):
     tz = timezone(locale)
