@@ -339,6 +339,7 @@ class Equity(Base):
     long_term_debt = Column(NUMERIC(19,4))
     long_term_earnings_pct = Column(NUMERIC(19,4))
     market_capitalization = Column(NUMERIC(19,4))
+    monthly_dividend = Column(NUMERIC(19,4))
     morningstar_category_1 = Column(String)
     morningstar_category_2 = Column(String)
     morningstar_category_3 = Column(String)
