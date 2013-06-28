@@ -336,6 +336,7 @@ class Equity(Base):
     gross_profit_margin_pct = Column(NUMERIC(19,4))
     historical_earnings_pct = Column(NUMERIC(19,4))
     industry = Column(String)
+    leveraged_factor = Column(NUMERIC(19,4))
     long_term_debt = Column(NUMERIC(19,4))
     long_term_earnings_pct = Column(NUMERIC(19,4))
     market_capitalization = Column(NUMERIC(19,4))
