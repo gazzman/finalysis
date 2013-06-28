@@ -34,6 +34,7 @@ def clean_field(field):
     field = field.replace('%', 'pct')
     field = field.replace(' ', '_')
     field = field.replace('avg.', 'avg')
+    field = field.replace('_help', '')
     if re.search('\.\d', field): field = field.replace('.', '._')
     return field
 
