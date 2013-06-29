@@ -8,6 +8,7 @@ from datetime import datetime
 from time import sleep
 import argparse
 import csv
+import logging
 import re
 import sys
 import urllib2
@@ -25,6 +26,7 @@ except ImportError:
 UA = 'Mozilla/5.0(X11; Linux x86_64; rv:10.0.12)Gecko/20130109 Firefox/10.0.12'
 HEADER = {'User-Agent' : UA}
 MAX_RETRY = 7
+LOGLEVEL = logging.DEBUG
 
 class YahooData:
     dfmt = '%Y%m%d'
@@ -42,7 +44,7 @@ class YahooData:
         csvout = csv.DictWriter(f, [])
         firstrun = True
         for ticker in tickerlist:
-            print >> sys.stderr, 'Starting %s...' % ticker, 
+            logger.info('Starting %s...', ticker)
             priceinfo = {'ticker': ticker, 'info': frequency}
             priceinfo.update(dates)
             priceurl = self.url % priceinfo
@@ -69,9 +71,9 @@ class YahooData:
                     if price['date'] in divdic:
                         price['dividends'] = divdic[price['date']]
                     csvout.writerow(price)
-                print >> sys.stderr, 'Done!'
+                logger.info('%s Done!', ticker)
             else:
-                print >> sys.stderr, '\nProblem with %s. Skipping.' % ticker
+                logger.error('Problem with %s. Skipping.', ticker)
         f.seek(0)
         return f
 
@@ -86,15 +88,16 @@ class YahooData:
         count = 1
         while count < MAX_RETRY:
             if 4 < count:
-                msg1 = "\nWe're on try %i now." % count
-                msg2 = "\nWhy don't you see if this url, %s, is working?" % url
-                print >> sys.stderr, msg1, msg2
+                msg1 = "We're on try %i now." % count
+                msg2 = "Why don't you see if this url, %s, is working?" % url
+                logger.error(msg1)
+                logger.error(msg2)
             try:
                 page = urllib2.urlopen(req)
                 return page
             except urllib2.HTTPError, err:
                 if re.match('HTTP Error 404', str(err)):
-                    print >> sys.stderr, '...404 problem...waiting 5 sec...',
+                    logger.error('...404 problem...waiting 5 sec...')
                     sleep(5)
                     count += 1
                 else:
@@ -102,7 +105,20 @@ class YahooData:
 
 # For running from command line
 if __name__ == "__main__":
+    # Initialize logging
+    logger_fmt = ' '.join(['%(levelno)s, [%(asctime)s #%(process)5i]',
+                           '%(levelname)8s: %(message)s'])
+    logger = logging.getLogger(__name__)
+    hdlr = logging.StreamHandler()
+    fmt = logging.Formatter(fmt=logger_fmt)
+    hdlr.setFormatter(fmt)
+    logger.addHandler(hdlr)
+    logger.setLevel(LOGLEVEL)
+
+    # Init the YahooData object
     yd = YahooData()
+
+    # Parse the args
     description = 'Pull ticker price and dividend data from Yahoo! Finance.'
     from_help = 'specify date to pull data from. Format is %s'\
                                                    % yd.dfmt.replace('%', '%%')
@@ -128,7 +144,8 @@ if __name__ == "__main__":
 
     with open(args.tickerfile, 'r') as f:
         tickers = [x.strip() for x in f.read().split('\n') if x.strip() != '']
-    tickers = [x.upper() for x in tickers if x[0] != '#']    
+    tickers = dict([(x.upper(), None) for x in tickers if x[0] != '#']).keys()
+    tickers.sort()
 
     if args.weekly:
         freq = 'w'
@@ -147,8 +164,9 @@ if __name__ == "__main__":
     if args.database:
         dburl = 'postgresql+psycopg2:///' + args.database
         engine = create_engine(dburl)
-        try: engine.execute(CreateSchema(args.schema))
-        except ProgrammingError: pass
+        if args.schema:
+            try: engine.execute(CreateSchema(args.schema))
+            except ProgrammingError: pass
         metadata = MetaData(engine)
         table = Table(tablename, metadata,
                       Column('ticker', VARCHAR(21), index=True, 
@@ -167,17 +185,20 @@ if __name__ == "__main__":
         headers = [x.replace(' ', '_') for x in headers]
 
         # Delete old price data
-        delete = table.delete()
         conn = engine.connect()
+        logger.debug('Connected to db %s', args.database)
         for ticker in tickers:
-            conn.execute(delete, ticker=ticker)
+            conn.execute(table.delete(), ticker=ticker)
+            logger.debug('Deleted prices for %s', ticker)
 
         # Write new price data
         if args.schema: tablename = '%s.%s' % (args.schema, tablename)
         conn = metadata.bind.raw_connection()
+        logger.debug('Connected to db %s via raw', args.database)
         cur = conn.cursor()
         cur.copy_from(d, tablename, sep=',', null='', columns=headers)
         conn.commit()
+        logger.info('Copied csv to database %s', args.database)
     else:
         to = datetime.now()
         fname = 'yprices_%s.csv' % to.strftime('%Y%m%dT%H%M%S')
