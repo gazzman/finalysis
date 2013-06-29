@@ -386,6 +386,7 @@ class Equity(Base):
     sales_growth_pct = Column(NUMERIC(19,4))
     sales_growth_pct = Column(NUMERIC(19,4))
     sales_per_employee = Column(NUMERIC(19,4))
+    schwab_equity_rating = VARCHAR(8)
     sector = Column(String)
     semi_annual_dividend = Column(NUMERIC(19,4))
     shares_held_by_institutions = Column(NUMERIC(19,4))
