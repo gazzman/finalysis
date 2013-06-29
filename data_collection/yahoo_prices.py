@@ -184,21 +184,25 @@ if __name__ == "__main__":
         headers = d.readline().strip().split(',')
         headers = [x.replace(' ', '_') for x in headers]
 
-        # Delete old price data
-        conn = engine.connect()
-        logger.debug('Connected to db %s', args.database)
-        for ticker in tickers:
-            conn.execute(table.delete(), ticker=ticker)
-            logger.debug('Deleted prices for %s', ticker)
+        # Estabish connection to db
+        conn = metadata.bind.raw_connection()
+        logger.debug('Connected to %s', args.database)
+        cur = conn.cursor()
+
+        # Truncate the table
+        if args.schema: tablename = '%s.%s' % (args.schema, tablename)
+        cur.execute("TRUNCATE TABLE %s" % tablename)
+        conn.commit()
+        logger.debug('Truncated table %s' % tablename)
 
         # Write new price data
-        if args.schema: tablename = '%s.%s' % (args.schema, tablename)
-        conn = metadata.bind.raw_connection()
-        logger.debug('Connected to db %s via raw', args.database)
-        cur = conn.cursor()
         cur.copy_from(d, tablename, sep=',', null='', columns=headers)
         conn.commit()
-        logger.info('Copied csv to database %s', args.database)
+        logger.info('Copied new data to %s', tablename)
+
+        # Close connection
+        conn.close()
+        logger.debug('Closed connection to %s', args.database)
     else:
         to = datetime.now()
         fname = 'yprices_%s.csv' % to.strftime('%Y%m%dT%H%M%S')
