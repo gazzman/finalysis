@@ -54,11 +54,18 @@ def clean_data(data):
     elif data[-1] == 'B': data = float(data[:-1])*1000000000
     return data
 
-def commit(session):
-    try: session.commit()
+def add_merge(session, orm):
+    try:
+        session.add(orm)
+        session.commit()
+        return 'Added'
     except IntegrityError as err:
-        if 'duplicate key' in str(err): session.rollback()
-        else: raise(err)
+        session.rollback()
+        if 'duplicate key' in str(err):
+            session.merge(orm)
+            session.commit()
+            return 'Merged'
+        else: raise(err)           
 
 if __name__ == "__main__":
     datafile = sys.argv[1]
@@ -75,22 +82,16 @@ if __name__ == "__main__":
     session = Session()
 
     # An explicit entry for the CASH symbol
-    session.add(tickers(**{'ticker': 'USD', 
-                           'type': 'CASH', 
-                           'description': 'Cash Money'}))
-    session.add(asset_allocation(**{'ticker': 'USD',
-                                  'date': '1900-01-01',
-                                  'pct_long_cash': 100}))
-    commit(session)
+    add_merge(session, tickers(**{'ticker': 'USD', 
+                                  'type': 'CASH', 
+                                  'description': 'Cash Money'}))
+    add_merge(session, asset_allocation(**{'ticker': 'USD', 
+                                           'date': '1900-01-01', 
+                                           'pct_long_cash': 100}))
 
     c = csv.DictReader(open(datafile, 'r'))
-#    for f in c.fieldnames:
-#        print '%s,%s' % (f, clean_field(f))
     c.fieldnames = [clean_field(x) for x in c.fieldnames]
-#    with open('cleaned.csv', 'w') as outfile: 
-#        outfile.write(open(datafile, 'r').read())
     for row in c:
-        print >> sys.stderr, 'Adding data for %s... ' % row['tickers.ticker'],
         tables = {}
         for key in row:
             table, field = key.split('.')
@@ -99,11 +100,12 @@ if __name__ == "__main__":
             try: tables[table][field] = data
             except KeyError: tables[table] = {'ticker': row['tickers.ticker'],
                                               field: data}
-        session.add(tickers(**tables['tickers']))
-        commit(session)
+        add_merge(session, tickers(**tables['tickers']))
         del tables['tickers']
         for table in tables:
             if tables[table]['date']:
-                session.add(locals()[table](**tables[table]))
-                commit(session)
-        print >> sys.stderr, 'Done!'
+                orm = locals()[table](**tables[table])
+                act = add_merge(session, orm)
+                msg = '%s data for %s in %s.%s' % (act, row['tickers.ticker'], 
+                                                   SCHEMA, table)
+                print >> sys.stderr, msg
