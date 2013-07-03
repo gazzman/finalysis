@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import argparse
 import csv
 import re
 import sys
@@ -68,10 +69,19 @@ def add_merge(session, orm):
         else: raise(err)           
 
 if __name__ == "__main__":
-    datafile = sys.argv[1]
-    db_name = sys.argv[2]
+    description = 'A utility for storing schwab_data.rb data in a db.'
 
-    dburl = 'postgresql+psycopg2:///' + db_name
+    p = argparse.ArgumentParser(description=description)
+    p.add_argument('datafile', type=str)
+    p.add_argument('db_name', type=str)
+    p.add_argument('--db_host', type=str, default='localhost')
+    p.add_argument('--db_port', type=int, default='5432')
+    args = p.parse_args()
+
+    datafile = args.datafile
+    dburl = 'postgresql+psycopg2://%s:%i/%s' % (args.db_host, 
+                                                args.db_port,
+                                                args.db_name)
     engine = create_engine(dburl)
     print >> sys.stderr, "Ensuring schema '%s' exists" % SCHEMA
     try: engine.execute(CreateSchema(SCHEMA))
