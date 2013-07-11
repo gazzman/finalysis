@@ -92,4 +92,7 @@ scottrade_map = {'﻿Symbol': 'symbol',
                  'Avg Unit Cost': None,
                  '$ G/L': None,
                  'Total G/L $': None,
-                 '% G/L': None}
+                 '% G/L': None,
+                 '% Above 52-Wk Low': None,
+                 '% Below 52-Wk High': None,
+                 'FRIP™': None}
