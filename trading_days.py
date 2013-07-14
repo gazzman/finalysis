@@ -5,7 +5,7 @@ import argparse
 
 from sqlalchemy import create_engine, MetaData
 
-from finalysis.nyse_holidays_orm import gen_table
+from finalysis.holidays_orm import gen_table
 
 #def last_trading_day(date, table, results):
 def last_trading_day(date, table, results=[], verbose=False):
