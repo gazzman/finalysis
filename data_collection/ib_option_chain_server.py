@@ -85,7 +85,7 @@ class ForkedTCPRequestHandler(SocketServer.BaseRequestHandler):
         conn.close()
         logger.debug('Closed connection to db %s', db_name)
         logger.info('Wrote data in %s.%s for %s %s', schema, tablename, 
-                                                     key, data[-1][0:8])
+                                                     data[-1][0:8], key)
 
 def add_timezone(date, time, locale='US/Eastern', fmt='%Y%m%d %H:%M:%S'):
     tz = timezone(locale)
