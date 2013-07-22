@@ -12,7 +12,8 @@ def gen_table(tablename, metadata, schema=None):
     '''
 
     return Table(tablename, metadata,
-                 Column('symbol', VARCHAR(21), index=True, primary_key=True),
+                 Column('ticker', VARCHAR(21), index=True, primary_key=True),
                  Column('date', Date, index=True),
+                 Column('name', String),
                  Column('url', String),
                  schema=schema)
