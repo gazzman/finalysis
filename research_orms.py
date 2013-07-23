@@ -86,6 +86,7 @@ class CountryAllocation(Base):
     monaco = Column(NUMERIC(19,4))
     netherlands = Column(NUMERIC(19,4))
     new_zealand = Column(NUMERIC(19,4))
+    nicaragua = Column(NUMERIC(19,4))
     norway = Column(NUMERIC(19,4))
     palau = Column(NUMERIC(19,4))
     panama = Column(NUMERIC(19,4))
