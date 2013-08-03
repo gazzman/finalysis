@@ -38,3 +38,4 @@ ticker*.txt
 tmp
 *.bash
 *.xml
+nonrepo
