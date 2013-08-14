@@ -24,8 +24,7 @@ class Position(Base):
     __tablename__ = 'positions'
     __table_args__ = {'schema':SCHEMA}
     id = Column(Integer, 
-                ForeignKey('%s.accounts.id' % SCHEMA, 
-                                    onupdate='cascade'),
+                ForeignKey('%s.accounts.id' % SCHEMA, onupdate='cascade'),
                 primary_key=True, index=True)
     timestamp = Column(DateTime(timezone=True), primary_key=True, index=True)
     symbol = Column(VARCHAR(21), primary_key=True, index=True)
@@ -38,17 +37,38 @@ class Transaction(Base):
     __tablename__ = 'transactions'
     __table_args__ = {'schema':SCHEMA}
     id = Column(Integer, 
-                ForeignKey('%s.accounts.id' % SCHEMA, 
-                           onupdate='cascade'),
+                ForeignKey('%s.accounts.id' % SCHEMA, onupdate='cascade'),
                 primary_key=True, index=True)
-    date = Column(Date, primary_key=True, index=True)
-    symbol = Column(VARCHAR(21), primary_key=True, index=True)
-    description = Column(String, primary_key=True, index=True)
-    transaction = Column(String, primary_key=True, index=True)
-    qty = Column(NUMERIC(19,4))
-    price = Column(NUMERIC(19,4))
-    net_value = Column(NUMERIC(19,4))
-    commissions = Column(NUMERIC(19,4))
+    timestamp = Column(DateTime(timezone=True), primary_key=True, index=True)
+    activityDescription = Column(String, primary_key=True, index=True)
+    amount = Column(NUMERIC(19,4), primary_key=True)
+    balance = Column(NUMERIC(19,4), primary_key=True)
+    tradeID = Column(Integer, primary_key=True)
+    symbol = Column(VARCHAR(21), index=True)
+    underlyingSymbol = Column(VARCHAR(21), index=True)
+    currency = Column(VARCHAR(21))
+    assetCategory = Column(VARCHAR(21))
+    fxRateToBase = Column(NUMERIC(19,4))
+    description = Column(String)
+    multiplier = Column(NUMERIC(19,4))
+    settleDateTarget = Column(Date)
+    transactionType = Column(String)
+    exchange = Column(String)
+    quantity = Column(NUMERIC(19,4))
+    tradePrice = Column(NUMERIC(19,4))
+    proceeds = Column(NUMERIC(19,4))
+    taxes = Column(NUMERIC(19,4))
+    commission = Column(NUMERIC(19,4))
+    commissionCurrency = Column(VARCHAR(21))
+    openCloseIndicator = Column(String)
+    notes = Column(String)
+    cost = Column(NUMERIC(19,4))
+    fifoPnlRealized = Column(NUMERIC(19,4))
+    mtmPnl = Column(NUMERIC(19,4))
+    buySell = Column(String)
+    netCash = Column(NUMERIC(19,4))
+    orderType = Column(String)
+    orderTime = Column(DateTime(timezone=True))
 
 def add_timezone(date, time, locale='US/Eastern', fmt='%m/%d/%Y %H:%M:%S'):
     tz = timezone(locale)
