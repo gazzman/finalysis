@@ -99,6 +99,7 @@ class CountryAllocation(Base):
     south_africa = Column(NUMERIC(19,4))
     south_korea = Column(NUMERIC(19,4))
     spain = Column(NUMERIC(19,4))
+    supranational = Column(NUMERIC(19,4))
     sweden = Column(NUMERIC(19,4))
     switzerland = Column(NUMERIC(19,4))
     taiwan = Column(NUMERIC(19,4))
