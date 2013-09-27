@@ -95,4 +95,7 @@ scottrade_map = {'﻿Symbol': 'symbol',
                  '% G/L': None,
                  '% Above 52-Wk Low': None,
                  '% Below 52-Wk High': None,
-                 'FRIP™': None}
+                 'FRIP™': None,
+                 'Reuters&reg; Rating': None,
+                 'Market Edge&reg; Opinion': None,
+                 'S&P Capital IQ&reg; Rankin': None}
