@@ -98,4 +98,4 @@ scottrade_map = {'﻿Symbol': 'symbol',
                  'FRIP™': None,
                  'Reuters&reg; Rating': None,
                  'Market Edge&reg; Opinion': None,
-                 'S&P Capital IQ&reg; Rankin': None}
+                 'S&P Capital IQ&reg; Ranking': None}
