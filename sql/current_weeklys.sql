@@ -1,12 +1,12 @@
 CREATE FUNCTION fund_research.current_weeklys()
 RETURNS TABLE(ticker VARCHAR(21),
               alt_ticker VARCHAR(21),
-              type VARCHAR)
+              product_type VARCHAR)
 AS $$
       SELECT DISTINCT ON (ticker) *
       FROM (SELECT DISTINCT substring(ticker FROM 1 FOR char_length(ticker)-1) AS ticker, 
                             ticker AS alt_ticker, 
-                            type
+                            product_type
             FROM available_weeklys
             WHERE ticker SIMILAR TO '%[0-9]'
             AND list_date = (SELECT max(list_date)
@@ -14,7 +14,7 @@ AS $$
             UNION
             SELECT DISTINCT ticker, 
                             NULL, 
-                            type
+                            product_type
             FROM available_weeklys
             WHERE ticker NOT SIMILAR TO '%[0-9]'
             AND list_date = (SELECT max(list_date)

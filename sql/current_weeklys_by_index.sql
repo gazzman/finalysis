@@ -1,20 +1,20 @@
 CREATE FUNCTION fund_research.current_weeklys_by_index()
 RETURNS TABLE(ticker VARCHAR(21), 
               alt_ticker VARCHAR(21), 
-              type VARCHAR, 
+              product_type VARCHAR, 
               djx int, 
               oex int, 
               spx int)
 AS $$
       SELECT DISTINCT ON (ticker) ticker, 
                                   alt_ticker, 
-                                  type, 
+                                  product_type, 
                                   djx, 
                                   oex, 
                                   spx 
       FROM (SELECT ticker, 
                    alt_ticker, 
-                   type, 
+                   product_type, 
                    djx, 
                    oex, 
                    spx, 
@@ -23,7 +23,7 @@ AS $$
             UNION
             SELECT ticker, 
                    alt_ticker, 
-                   type, 
+                   product_type, 
                    0, 
                    0, 
                    0, 

@@ -1,13 +1,13 @@
 CREATE FUNCTION fund_research.oex_weeklys_components()
 RETURNS TABLE(ticker VARCHAR(21), 
               alt_ticker VARCHAR(21), 
-              type VARCHAR, 
+              product_type VARCHAR, 
               name VARCHAR, 
               url VARCHAR)
 AS $$
       SELECT components.ticker, 
              weeklys.alt_ticker, 
-             weeklys.type, 
+             weeklys.product_type, 
              components.name, 
              components.url
       FROM oex_components() AS components, 
