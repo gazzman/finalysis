@@ -37,7 +37,8 @@ def clean_field(field):
     field = field.replace('avg.', 'avg')
     field = field.replace('_help', '')
     if re.search('\.\d', field): field = field.replace('.', '._')
-    return field
+    table, dot, field = field.partition('.')
+    return ''.join([table, dot, field[:63]])
 
 def clean_data(data):
     if not data: return None
