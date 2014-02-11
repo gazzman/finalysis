@@ -404,6 +404,7 @@ class Equity(Base):
     put_to_call_ratio_30_day = Column(NUMERIC(19,4))
     quarterly_dividend = Column(NUMERIC(19,4))
     quick_ratio = Column(NUMERIC(19,4))
+    regular_dividend = Column(NUMERIC(19,4))
     return_on_assets_pct = Column(NUMERIC(19,4))
     return_on_equity_pct = Column(NUMERIC(19,4))
     return_on_investment_pct = Column(NUMERIC(19,4))
