@@ -326,6 +326,7 @@ class Equity(Base):
     _52_week_range_4 = Column(String)
     _52_week_range_5 = Column(String)
     annual_yield = Column(NUMERIC(19,4))
+    annual_dividend_yield = Column(NUMERIC(19,4))
     average_volume_10_day = Column(Integer)
     beta = Column(NUMERIC(19,4))
     beta_5_year = Column(NUMERIC(19,4))
