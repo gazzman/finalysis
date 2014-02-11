@@ -100,6 +100,7 @@ class CountryAllocation(Base):
     philippines = Column(NUMERIC(19,4))
     poland = Column(NUMERIC(19,4))
     puerto_rico = Column(NUMERIC(19,4))
+    qatar = Column(NUMERIC(19,4))
     romania = Column(NUMERIC(19,4))
     russia = Column(NUMERIC(19,4))
     singapore = Column(NUMERIC(19,4))
