@@ -36,6 +36,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                        type: 'xs:decimal';
                        font-family: Courier;
                        }
+            td.ticker {text-align: left;
+                       font-family:"Lucida Console",Monaco,monospace;
+                       font-size: 12px}
             tfoot {
                    background-color: #DEDEDE;
                    font-weight: bold; 
@@ -323,7 +326,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 
 <xsl:template match='ticker'>
-    <td>
+    <td class='ticker'>
         <xsl:value-of select="."/>
     </td>
 </xsl:template>
