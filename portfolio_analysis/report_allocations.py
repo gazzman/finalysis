@@ -275,7 +275,7 @@ if __name__ == '__main__':
                              current_pos.columns.description)\
                       .filter(current_pos.columns.symbol.in_(option_symbols))\
                       .all()
-        rows = list(set(rows))              
+        rows = list(set(rows))
         opt_val, option_symbols = report_security(options, rows)
     else: option_symbols = {}
 
