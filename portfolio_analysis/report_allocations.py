@@ -103,7 +103,7 @@ def report_security(parent_element, rows):
         if qty > 0: long_value += value
         else: short_value += value
         ticker = etree.SubElement(security, 'ticker')
-        ticker.text = symbol
+        ticker.text = symbol.replace(' ', u'\xA0')
         desc_lmnt = etree.SubElement(security, 'description')
         desc_lmnt.text = description
         qty_lmnt = etree.SubElement(security, 'quantity')
