@@ -37,13 +37,18 @@ if __name__ == "__main__":
     pos_file = open(pos_fname, 'r')
     lines = [x.strip() for x in pos_file.read().split('\n')]
     pos_line = [x for x in lines if 'positions' in x.lower()][0]
-    dateinfo = pos_line.split('as of ')[-1].split()[0:2]
-    date, time = add_timezone(*dateinfo)
+    try:
+        dateinfo = pos_line.split('as of ')[-1].split()[0:2]
+        date, time = add_timezone(*dateinfo)
+    except ValueError as err:
+        dateinfo = pos_line.split('as of ')[-1].split(',')[0:2]
+        date, time = add_timezone(*dateinfo, fmt='%I:%M %p ET  %m/%d/%Y"')
+        
     pos_data['timestamp'] = '%s %s' % (date, time)
 
     # Split up the data by account
     accounts = [x for x in lines if 'xxxx-' in x.lower()]
-    totals = [x for x in lines if 'total market value' in x.lower()]
+    totals = [x for x in lines if 'account total' in x.lower()]
 
     starts = [lines.index(x) for x in accounts]
     ends = [lines[x:].index(y) + x for x,y in zip(starts, totals)]

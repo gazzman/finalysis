@@ -16,17 +16,19 @@ fidelity_map = {'Account Name/Number': None,
                 'Total Balance': None}
 
 schwab_map = {"Symbol": 'symbol',
-              "Name": 'description',
+              "Description": 'description',
               "Quantity": 'qty',
               "Price": 'price',
-              "Change": None,
+              "Price Change $": None,
+              "Price Change %": None,
               "Market Value": 'total_value',
-              "Day Change($)": None,
-              "Day Change(%)": None,
+              "Day Change $": None,
+              "Day Change %": None,
               "Reinvest Dividends?": None,
-              "Capital Gain": None,
-              "% of Account": None,
-              "Security Type": None}
+              "Capital Gains?": None,
+              "% Of Account": None,
+              "Security Type": None,
+              "": None}
 
 scottrade_map = {'﻿Symbol': 'symbol',
                  '﻿﻿Symbol': 'symbol',
