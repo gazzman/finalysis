@@ -221,7 +221,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             </tr>
         </thead>
         <tbody>
-            <xsl:apply-templates select='category'/>
+            <xsl:apply-templates select='category'>
+                <xsl:sort select='name'/>
+            </xsl:apply-templates>
         </tbody>
         <tfoot>
             <tr>
