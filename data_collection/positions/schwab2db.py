@@ -57,7 +57,7 @@ if __name__ == "__main__":
     data = ['\n'.join(lines[x[0]+1:x[1]]) for x in ranges]
     data = [csv.DictReader(StringIO(x)) for x in data]
     for i in range(0, len(accounts)):
-        account_info.update({'account': accounts[i]})
+        account_info.update({'account': accounts[i].replace('"','')})
         pos_data['id'] = get_id(account_info, session)
         for row in data[i]:
             pos_data.update(gen_position_data(row, schwab_map,
