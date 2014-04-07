@@ -88,6 +88,7 @@ class CountryAllocation(Base):
     luxembourg = Column(NUMERIC(19,4))
     macao = Column(NUMERIC(19,4))
     malaysia = Column(NUMERIC(19,4))
+    marshall_islands = Column(NUMERIC(19,4))
     mexico = Column(NUMERIC(19,4))
     monaco = Column(NUMERIC(19,4))
     netherlands = Column(NUMERIC(19,4))
