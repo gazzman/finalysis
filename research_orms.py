@@ -119,6 +119,7 @@ class CountryAllocation(Base):
     ukraine = Column(NUMERIC(19,4))
     united_kingdom = Column(NUMERIC(19,4))
     united_states = Column(NUMERIC(19,4))
+    venezuela = Column(NUMERIC(19,4))
 
 class MktCapAllocation(Base):
     __tablename__ = 'mkt_cap_allocation'
@@ -176,6 +177,7 @@ class SectorAllocation(Base):
     materials = Column(NUMERIC(19,4))
     telecommunication_services = Column(NUMERIC(19,4))
     utilities = Column(NUMERIC(19,4))
+    unclassified = Column(NUMERIC(19,4))
 
 class Fund(Base):
     __tablename__ = 'fund'
